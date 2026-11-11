@@ -16,3 +16,5 @@ input,select,textarea{width:100%;max-width:100%;min-height:44px;background:#fff;
 .task>div{min-width:0;max-width:100%}.task h3,.task p{overflow-wrap:anywhere}
 
 .task-estimate{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px 10px;border-radius:8px;margin:8px 0;font-size:11px;border:1px solid #dbece9;background:#edf8f5;color:#347669}.task-estimate strong{font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}.estimate-planned{border-color:#e3e9ef;background:#f2f6fa;color:#6a7f93}.estimate-over{border-color:#f3d9d3;background:#fff1ed;color:#ad5946}.estimate-done{border-color:#d7ebdf;background:#edf8f0;color:#397e56}.worker-task .task-estimate{padding:7px 8px;font-size:10px}.worker-task .task-estimate strong{font-size:12px}@media(max-width:700px){.worker-task .task-estimate{gap:3px}.worker-task .task-estimate strong{font-size:11px}}
+
+.pill.carried{background:#f0edf8;color:#8b70a9}

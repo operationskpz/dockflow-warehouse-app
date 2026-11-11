@@ -97,3 +97,13 @@ Estimates are stored in Supabase, included in CSV, and copied from recurring sch
 Verification: 39 automated checks passed, including countdown arithmetic, paused/reopened views, finished state, overrun, validation, task and schedule payloads, Spanish labels, and updating shared card copies. Read-only SQL verified nullable estimate columns, bounds constraints, and recurring-generator estimate propagation.
 
 Hour input and CSV export preserve the existing estimated_minutes storage and countdown arithmetic. Existing durations are converted for display and are not reinterpreted as hours.
+
+## Automatic unfinished-task carryover
+
+Unfinished dated tasks move to the current day after their due date passes. The same row/ID is kept, preserving workers, notes, attachments, status, estimates, elapsed time and pause state. Done tasks and tasks with a finish timestamp are not moved. Future-dated, undated and invalid-date tasks are unchanged. Ordinary tasks use America/New_York; recurring instances use their linked schedule’s timezone, falling back to Eastern if the schedule is deleted. Missed days move directly to today, without creating copies.
+
+The first due date is preserved in original_due; carried_over_at and carryover_count record actual rollover events. Cards show Carried over and include Original due date in Details. CSV includes the original date and carryover metadata. Repeated-task instances retain their original repeated_for occurrence date, so a carried-over prior occurrence and today’s fresh occurrence remain separate tasks.
+
+The existing five-minute cron job now calls dockflow_scheduled_maintenance, which generates recurring instances then rolls over unfinished tasks. The approved-member foreground load also invokes the RLS-protected SECURITY INVOKER rollover function before reading tasks. Visible pages refresh at day changes and every five minutes; active fields and open modals postpone background refresh. Pausing or finishing a task is never implied by carryover. A running timer keeps running; a paused timer stays paused.
+
+Apply database/task-carryover.sql after the prior scripts for a new installation. No additional cron job is added. Free-project pause behavior remains: background work resumes when Supabase resumes, and foreground load catches up. Verification: 45 automated app checks passed; live read-only SQL tests covered rollover eligibility, completed/future/undated/invalid dates, year boundaries and repeat-call idempotence. There were no overdue unfinished production tasks at setup time.

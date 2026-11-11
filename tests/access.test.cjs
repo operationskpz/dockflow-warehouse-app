@@ -14,7 +14,7 @@ function workspace(){
 }
 function configure(w,approved){
  w.context.approved=approved;
- w.run(`client={auth:{getSession:async()=>({data:{session:{user:{id:'employee-a',email:'a@example.com'}}}})},from:table=>{let q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:approved?{user_id:'employee-a'}:null,error:null}),order:async()=>({data:table==='dockflow_tasks'?[{id:'task-a',title:'Warehouse task'}]:[],error:null})};return q;}}`);
+ w.run(`client={rpc:async()=>({data:0,error:null}),auth:{getSession:async()=>({data:{session:{user:{id:'employee-a',email:'a@example.com'}}}})},from:table=>{let q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:approved?{user_id:'employee-a'}:null,error:null}),order:async()=>({data:table==='dockflow_tasks'?[{id:'task-a',title:'Warehouse task'}]:[],error:null})};return q;}}`);
 }
 test('signed-out page shows login and no warehouse records',()=>{
  const w=workspace();assert.equal(w.run('cloud'),false);assert.equal(w.run('db.tasks.length'),0);assert.match(w.elements.get('#content').innerHTML,/Employee sign-in/);assert.doesNotMatch(w.elements.get('#content').innerHTML,/Check inbound pallets/);
@@ -159,5 +159,17 @@ test('hour inputs preserve existing estimates and accept quarter-hour durations'
  const w=workspace();assert.match(w.run('estimateInput(90)'),/value="1.5"/);assert.equal(w.run("readEstimatedHours('1.5')"),90);assert.equal(w.run("readEstimatedHours('0.5')"),30);assert.equal(w.run("readEstimatedHours('2.25')"),135);assert.match(w.run('estimateInput(1)'),/value="0.0167"/);assert.equal(w.run("readEstimatedHours('0.0167')"),1);
 });
 test('CSV exports estimated hours rather than minute values',()=>{
- const w=workspace();w.run("db.tasks=[{id:'t',title:'Packing',estimated_minutes:90}];download=(name,text)=>{csvExport=text};exportCsv()");const csv=w.run('csvExport');assert.match(csv.split('\r\n')[0],/estimated_hours/);assert.doesNotMatch(csv.split('\r\n')[0],/estimated_minutes/);assert.match(csv,/"1.5"$/);
+ const w=workspace();w.run("db.tasks=[{id:'t',title:'Packing',estimated_minutes:90}];download=(name,text)=>{csvExport=text};exportCsv()");const csv=w.run('csvExport');assert.match(csv.split('\r\n')[0],/estimated_hours/);assert.doesNotMatch(csv.split('\r\n')[0],/estimated_minutes/);assert.equal(csv.split('\r\n')[1].split(',')[csv.split('\r\n')[0].split(',').indexOf('estimated_hours')],'"1.5"');
+});
+test('approved account refresh requests carryover before loading tasks',async()=>{
+ const w=workspace();configure(w,true);w.run("rolloverCalls=0;client.rpc=async(name)=>{if(name==='dockflow_rollover_unfinished_tasks')rolloverCalls++;return {data:0,error:null}}");await w.run('startCloud()');assert.equal(w.run('rolloverCalls'),1);assert.equal(w.run('cloud'),true);
+});
+test('unapproved accounts never request task carryover',async()=>{
+ const w=workspace();configure(w,false);w.run("rolloverCalls=0;client.rpc=async()=>{rolloverCalls++;return {data:0,error:null}}");await w.run('startCloud()');assert.equal(w.run('rolloverCalls'),0);assert.equal(w.run('cloud'),false);
+});
+test('daily refresh waits for editing to finish and refreshes only once',async()=>{
+ const w=workspace();w.run("cloud=true;view='dashboard';displayedDashboardDay='2000-01-01';syncCalls=0;loadCloud=async()=>{syncCalls++;lastTaskSync=Date.now()};$('#modalHost').innerHTML='<form>Unsaved work</form>'");await w.run('refreshTaskDay()');assert.equal(w.run('syncCalls'),0);w.run("$('#modalHost').innerHTML=''");w.context.document.activeElement={matches:()=>true};await w.run('refreshTaskDay()');assert.equal(w.run('syncCalls'),0);w.context.document.activeElement=null;await w.run('refreshTaskDay()');await w.run('refreshTaskDay()');assert.equal(w.run('syncCalls'),1);assert.equal(w.run('displayedDashboardDay'),w.run('today()'));
+});
+test('carried-over task cards show their original due date in both languages',()=>{
+ const w=workspace();w.run("carried={id:'t',title:'Unfinished work',status:'To Do',priority:'Medium',due:today(),original_due:'2026-11-10',carryover_count:1}");const html=w.run('workerTaskHtml(carried)');assert.match(html,/Carried over/);assert.match(html,/Original due date/);assert.match(html,/2026/);w.run("setLanguage('es')");assert.match(w.run('workerTaskHtml(carried)'),/Trasladada de otro día/);assert.equal(w.run("carryoverBadge({})"),'');
 });
