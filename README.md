@@ -81,3 +81,7 @@ Dashboard worker boxes use a compact grid (about five columns on a typical deskt
 ## All Tasks by worker
 
 Each All Tasks date section now contains compact worker boxes. Only workers with matching tasks in that date section appear. Shared tasks are shown for each assigned worker, while the date section count remains the number of unique tasks. Unassigned or orphaned assignments have an Unassigned box. Search and status/operation filters apply before both date and worker grouping. Each compact card shows its due date, task controls, and expandable details.
+
+## Refreshed interface
+
+The app uses app.css with a navy sidebar, persistent icon navigation, teal action controls, color-coded worker initials, and completion bars. The dashboard and All Tasks keep narrow worker columns and tall scrollable task areas; phones retain two worker columns and a scrolling bottom navigation bar. The selected DF logo, English/Spanish controls, filters, task timing, recurrence and database behavior are unchanged. Reduced-motion and keyboard-focus styles are included.

@@ -134,3 +134,6 @@ test('All Tasks groups workers inside each date section and preserves shared and
 test('worker grouping follows active task filters and shows due dates on compact cards',()=>{
  const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'},{id:'b',name:'Bob'}];db.tasks=[{id:'a',title:'Active job',due:today(),assignees:['a'],status:'In Progress'},{id:'b',title:'Finished job',due:today(),assignees:['b'],status:'Done'}];statusFilter='In Progress'");const html=w.run('taskPage()');assert.match(html,/Alice/);assert.doesNotMatch(html,/Bob|Finished job/);assert.match(html,/Due /);assert.match(html,/Active job/);
 });
+test('worker design shows correct completion and escapes worker names',()=>{
+ const w=workspace();const html=w.run("workerHeading('Oscar Smith',[{status:'Done'},{status:'To Do'},{status:'Done'}])");assert.match(html,/OS<\/span>/);assert.match(html,/2\/3 completed/);assert.match(html,/aria-valuenow="2"/);assert.match(html,/aria-valuemax="3"/);assert.match(html,/width:67%/);assert.doesNotMatch(w.run("workerHeading('<img src=x>',[])"),/<img/);
+});
