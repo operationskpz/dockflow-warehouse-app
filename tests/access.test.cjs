@@ -57,3 +57,11 @@ test('successful reset clears the password form, signs out sessions, and shows s
  await w.elements.get('#passwordForm').onsubmit({preventDefault(){},target:{values:{password:'correct-horse-123',confirm:'correct-horse-123'},querySelector(){return {disabled:false}},reset(){cleared=true;}}});
  assert.equal(cleared,true);assert.equal(w.run('logoutScope'),'global');assert.equal(w.run('recoveryMode'),false);assert.equal(w.run('cloud'),false);assert.equal(w.run('db.tasks.length'),0);assert.match(w.elements.get('#content').innerHTML,/Password saved/);
 });
+test('a task can list both workers and appears in both workloads',()=>{
+ const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'},{id:'b',name:'Bob'}];db.tasks=[{id:'shared',title:'Shared work',assignee:'a',assignees:['a','b'],status:'To Do'}]");
+ assert.equal(w.run('assignedNames(db.tasks[0])'),'Alice, Bob');assert.equal(w.run("isAssigned(db.tasks[0],'b')"),true);assert.match(w.run('taskHtml(db.tasks[0])'),/Alice, Bob/);assert.equal((w.run('teamPage()').match(/\(1 open\)/g)||[]).length,2);
+ assert.match(w.run('workerChoices(db.tasks[0])'),/value="a" checked/);assert.match(w.run('workerChoices(db.tasks[0])'),/value="b" checked/);
+});
+test('legacy assignments are retained and clearing workers means unassigned',()=>{
+ const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'}]");assert.equal(w.run("assignedNames({assignee:'a'})"),'Alice');assert.equal(w.run("assignedNames({assignee:'a',assignees:[]})"),'Unassigned');
+});

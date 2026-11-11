@@ -37,3 +37,7 @@ Run `node --test tests/access.test.cjs` and `node --check app.js`.
 Passed: twelve automated application checks covering sign-in gating, approved/unapproved accounts using mocked API responses, sign-out clearing, failed refresh clearing, protection against an old request restoring data after sign-out, absence of signup/local task persistence/administrative keys, and password recovery requests, expired links, password confirmation, and post-reset sign-out. Live database checks confirmed that an unapproved identity cannot read, create, update, or delete a task, or add its own membership. The transaction was rolled back.
 
 **Not completed:** browser UI checks, actual employee email/password sign-ins, and task/attachment sharing between two real accounts. Automatic approval review rejected a proposed temporary privileged test endpoint; it was not deployed. No test users were created.
+
+## Assigning multiple workers
+
+Create or edit a task and check each worker under Assign workers. Both names appear on the task; search and CSV export include all assigned workers, and each worker’s workload counts the shared task. Add worker names in Team first. Existing single-worker assignments are preserved. For a new database, run database/setup.sql followed by database/multiple-assignees.sql.
