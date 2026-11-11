@@ -124,3 +124,6 @@ test('invalid repeat date range is not submitted, and employee cannot open sched
 test('repeated-task section supports Spanish and clears schedules at sign-out',()=>{
  const w=workspace();w.run("setLanguage('es');db.repeated=[]");assert.match(w.run('recurringPage()'),/Todavía no hay tareas repetidas/);w.run("memberRole='manager';db.repeated=[{id:'r'}];clearWorkspace()");assert.equal(w.run('memberRole'),'employee');assert.equal(w.run('db.repeated.length'),0);
 });
+test('compact worker task keeps timing, notes, attachment and actions accessible',()=>{
+ const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'}]");const html=w.run("workerTaskHtml({id:'t',title:'Pack cartons',description:'Private notes',assignees:['a'],status:'In Progress',priority:'High',started_at:'2026-11-11T10:00:00Z',attachment:'a/file.pdf'})");assert.match(html,/Pack cartons/);assert.match(html,/data-pause="t"/);assert.match(html,/data-finish="t"/);assert.match(html,/data-edit="t"/);assert.match(html,/data-elapsed-start/);assert.match(html,/<details class="worker-task-details">/);assert.match(html,/Private notes/);assert.match(html,/data-attachment="t"/);
+});

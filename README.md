@@ -73,3 +73,7 @@ Rule rows are locked during generation. Deterministic instance IDs and a unique 
 Apply database/repeated-tasks.sql after the existing setup scripts for a new installation. It enables pg_cron. Generator functions are SECURITY INVOKER and do not bypass RLS; manager authorization is checked for authenticated RPC callers. The cron job runs as postgres.
 
 Verification: 29 automated app checks pass, including schedule payloads, multi-worker assignments, date validation, manager-only controls, Spanish labels, and clearing state at sign-out. Live read-only SQL checks passed for short months, monthly anchor preservation, weekend skipping, and weekly year boundaries. The cron job has successful recorded runs. Test schedule/instance creation was not verified: the client cancelled the database tool’s confirmation before the rollback-only test could run. No test schedules or instances were written.
+
+## Compact worker overview
+
+Dashboard worker boxes use a compact grid (about five columns on a typical desktop, two on phones). Each box has a bounded, keyboard-focusable scrolling task list, so workers with many tasks do not push all other boxes down. Compact rows keep task titles, status, working time and action buttons visible; expand Details for notes, start/finish timestamps, workers and attachments. All Tasks retains its existing full cards.
