@@ -7,6 +7,7 @@ function workspace(){
  const elements=new Map();
  const element=key=>{if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',disabled:false,classList:{add(){},toggle(){}},querySelector(){return element('button')}});return elements.get(key)};
  const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener(){}},window:{},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app.js'),'utf8'),context);
  return {context,elements,run:s=>vm.runInContext(s,context)};
 }
@@ -64,4 +65,14 @@ test('a task can list both workers and appears in both workloads',()=>{
 });
 test('legacy assignments are retained and clearing workers means unassigned',()=>{
  const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'}]");assert.equal(w.run("assignedNames({assignee:'a'})"),'Alice');assert.equal(w.run("assignedNames({assignee:'a',assignees:[]})"),'Unassigned');
+});
+test('Spanish translates task controls and statuses while preserving entered content',()=>{
+ const w=workspace();w.run("setLanguage('es');db.employees=[{id:'a',name:'Oscar'}];db.tasks=[{id:'t',title:'Receiving',category:'Receiving',priority:'High',status:'In Progress',assignees:['a'],due:''}]");
+ const html=w.run('taskHtml(db.tasks[0])');assert.match(html,/<h3>Receiving<\/h3>/);assert.match(html,/Oscar/);assert.match(html,/Recepción/);assert.match(html,/En curso/);assert.match(html,/Editar/);
+ assert.match(w.run("options(statuses,'In Progress')"),/value="In Progress" selected>En curso/);assert.equal(w.run('db.tasks[0].status'),'In Progress');w.run("setLanguage('en')");assert.match(w.run('taskHtml(db.tasks[0])'),/Edit/);
+});
+test('language choice is stored and restored on reload',()=>{
+ const storage=new Map();const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};const document={documentElement:{},querySelectorAll:()=>[],querySelector:()=>null};const code=fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8');
+ const first=vm.createContext({localStorage,document});vm.runInContext(code,first);vm.runInContext("setLanguage('es')",first);assert.equal(document.documentElement.lang,'es');
+ const next=vm.createContext({localStorage,document});vm.runInContext(code,next);assert.equal(vm.runInContext("tr('Settings')",next),'Configuración');
 });

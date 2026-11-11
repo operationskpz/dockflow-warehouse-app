@@ -41,3 +41,7 @@ Passed: twelve automated application checks covering sign-in gating, approved/un
 ## Assigning multiple workers
 
 Create or edit a task and check each worker under Assign workers. Both names appear on the task; search and CSV export include all assigned workers, and each worker’s workload counts the shared task. Add worker names in Team first. Existing single-worker assignments are preserved. For a new database, run database/setup.sql followed by database/multiple-assignees.sql.
+
+## Language
+
+Use the Language / Idioma selector at the top of the app, including before sign-in, to choose English or Español. The choice is saved in this browser. Task titles, notes, worker names, and database status values are preserved. Interface labels, status display, and dates follow the chosen language.
