@@ -14,7 +14,7 @@ Only authenticated users explicitly listed in `public.dockflow_members` may read
 
 This app is one shared warehouse: every approved member may create, edit, and delete all tasks and attachments. Team entries are assignment labels, not login accounts. `role` in the membership table is descriptive; it does not implement separate manager/employee task permissions.
 
-Administrators create employee accounts through Supabase Authentication and then add the account's UUID to `dockflow_members`. Password resets are managed by the administrator. Do not give employees access to your GitHub or Supabase administrator account.
+Administrators create employee accounts through Supabase Authentication and then add the account's UUID to `dockflow_members`. Employees can use “Forgot password?” on the sign-in page. Configure Supabase Auth Site URL as `https://operationskpz.github.io/dockflow-warehouse-app/` and allow the exact redirect `https://operationskpz.github.io/dockflow-warehouse-app/?reset=1`. Recovery links show a form for choosing a password, then sign out sessions and return to sign-in. Password recovery never approves warehouse membership. Email delivery depends on the project’s email provider configuration. Do not give employees access to your GitHub or Supabase administrator account.
 
 **Outstanding setup:** Public signup is still enabled in the Supabase project. Disable “Allow new users to sign up” in Supabase Authentication settings. The membership gate still denies unapproved users warehouse data. There were zero login accounts and zero approved members at verification time.
 
@@ -34,6 +34,6 @@ The least-privilege grant change was applied to the live project. Anonymous user
 
 Run `node --test tests/access.test.cjs` and `node --check app.js`.
 
-Passed: seven automated application checks covering sign-in gating, approved/unapproved accounts using mocked API responses, sign-out clearing, failed refresh clearing, protection against an old request restoring data after sign-out, and absence of signup/local task persistence/administrative keys. Live database checks confirmed that an unapproved identity cannot read, create, update, or delete a task, or add its own membership. The transaction was rolled back.
+Passed: twelve automated application checks covering sign-in gating, approved/unapproved accounts using mocked API responses, sign-out clearing, failed refresh clearing, protection against an old request restoring data after sign-out, absence of signup/local task persistence/administrative keys, and password recovery requests, expired links, password confirmation, and post-reset sign-out. Live database checks confirmed that an unapproved identity cannot read, create, update, or delete a task, or add its own membership. The transaction was rolled back.
 
 **Not completed:** browser UI checks, actual employee email/password sign-ins, and task/attachment sharing between two real accounts. Automatic approval review rejected a proposed temporary privileged test endpoint; it was not deployed. No test users were created.
