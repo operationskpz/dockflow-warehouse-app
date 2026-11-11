@@ -61,3 +61,15 @@ Dashboard uses the task due date and the viewer’s local calendar date to show 
 ## All Tasks date sections
 
 All Tasks groups matching tasks by due date into Today, Tomorrow, and Later. Earlier dates and tasks without a due date appear in their own sections when present. Searches and status/operation filters apply before grouping. Today and tomorrow use the device’s local calendar date, including across month/year boundaries. Operation view keeps its existing list.
+
+## Repeated Tasks
+
+Managers can create, edit, pause/resume, and delete recurring schedules in Repeated Tasks. Approved employees can read schedules and work on generated tasks. Choose daily, weekdays, weekly, or monthly; an anchor/first date; an optional end date; workers; operation; priority; notes; and schedule timezone. Default timezone is America/New_York (Eastern). Weekly uses the first date’s weekday. Monthly uses the anchor day, clamped to the last day in shorter months, without drifting the following month.
+
+The database cron job dockflow-repeated-tasks runs every five minutes, independent of the browser. A separate task is created on its scheduled date, with that exact due date, the selected workers, To Do status, no attachment, and no running timer. Future task instances are not created ahead of their due dates; the next date is shown on the schedule. Saving/resuming a schedule also requests generation immediately when an instance is due.
+
+Rule rows are locked during generation. Deterministic instance IDs and a unique rule/date index prevent duplicates. The cursor advances after each instance; deleting a generated task does not regenerate it. Existing instances are not edited when their schedule changes, pauses, or is deleted. Resuming a paused schedule starts from the current date and does not backfill dates intentionally skipped while paused. Changes to start/frequency/timezone/end date also recalculate from today. A scheduler outage is caught up from its saved cursor, at most 366 dates per rule per pass. Supabase free projects may pause while inactive; no jobs run while the project is paused, and missed dates are processed after the project resumes.
+
+Apply database/repeated-tasks.sql after the existing setup scripts for a new installation. It enables pg_cron. Generator functions are SECURITY INVOKER and do not bypass RLS; manager authorization is checked for authenticated RPC callers. The cron job runs as postgres.
+
+Verification: 29 automated app checks pass, including schedule payloads, multi-worker assignments, date validation, manager-only controls, Spanish labels, and clearing state at sign-out. Live read-only SQL checks passed for short months, monthly anchor preservation, weekend skipping, and weekly year boundaries. The cron job has successful recorded runs. Test schedule/instance creation was not verified: the client cancelled the database tool’s confirmation before the rollback-only test could run. No test schedules or instances were written.

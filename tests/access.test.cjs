@@ -6,8 +6,9 @@ const path=require('node:path');
 function workspace(){
  const elements=new Map();
  const element=key=>{if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',disabled:false,classList:{add(){},toggle(){}},querySelector(){return element('button')}});return elements.get(key)};
- const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener(){}},window:{},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}}});
+ const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener(){}},window:{},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}getAll(key){const v=this.values[key];return Array.isArray(v)?v:v?[v]:[];}}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8'),context);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../recurring.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app.js'),'utf8'),context);
  return {context,elements,run:s=>vm.runInContext(s,context)};
 }
@@ -108,4 +109,18 @@ test('date sections respect search and status filters, with Spanish headings',()
 });
 test('tomorrow uses the next local calendar date across year boundaries',()=>{
  const w=workspace();const fixed=new Date(2026,11,31,23,30);w.context.Date=class extends Date{constructor(...args){super(...(args.length?args:[fixed.getTime()]));}};assert.equal(w.run('today()'),'2026-12-31');assert.equal(w.run('tomorrow()'),'2027-01-01');
+});
+test('repeated schedules are readable by employees but only managers get controls',()=>{
+ const w=workspace();w.run("db.repeated=[{id:'r',title:'Daily cleanup',frequency:'daily',starts_on:'2026-11-11',next_run_date:'2026-11-12',time_zone:'America/New_York',enabled:true,assignees:[]}];memberRole='employee'");let html=w.run('recurringPage()');assert.match(html,/Daily cleanup/);assert.doesNotMatch(html,/data-repeat-edit/);w.run("memberRole='manager'");html=w.run('recurringPage()');assert.match(html,/data-repeat-edit="r"/);assert.match(html,/Pause schedule/);assert.match(html,/Next task date/);
+});
+test('manager saves recurrence dates and both assignees, then requests immediate generation',async()=>{
+ const w=workspace();w.run("cloud=true;memberRole='manager';loadCloud=async()=>{};client={from:table=>({upsert:obj=>{savedRule={table,obj};return {select:()=>({single:async()=>({data:{id:obj.id},error:null})})}}}),rpc:async name=>{generatedFunction=name;return {data:0,error:null}}};recurringModal()");
+ await w.elements.get('#recurringForm').onsubmit({preventDefault(){},target:{values:{title:'Daily packing',description:'Keep original notes',frequency:'weekly',starts_on:'2026-12-01',ends_on:'2026-12-31',time_zone:'America/New_York',category:'Shipping',priority:'High',assignees:['a','b','a']},querySelector(){return {disabled:false}}}});
+ assert.equal(w.run('savedRule.table'),'dockflow_repeated_tasks');assert.equal(w.run('savedRule.obj.starts_on'),'2026-12-01');assert.equal(w.run('savedRule.obj.frequency'),'weekly');assert.equal(w.run('savedRule.obj.assignees.join(",")'),'a,b');assert.equal(w.run('generatedFunction'),'dockflow_generate_repeated_tasks');assert.equal(w.run('savedRule.obj.description'),'Keep original notes');
+});
+test('invalid repeat date range is not submitted, and employee cannot open schedule editor',async()=>{
+ const w=workspace();w.run("cloud=true;memberRole='employee';recurringModal()");assert.equal(w.elements.get('#modalHost'),undefined);w.run("memberRole='manager';saveCalls=0;client={from:()=>{saveCalls++;}};recurringModal()");await w.elements.get('#recurringForm').onsubmit({preventDefault(){},target:{values:{title:'Task',description:'',frequency:'daily',starts_on:'2026-12-02',ends_on:'2026-12-01',time_zone:'America/New_York',category:'General',priority:'Medium'},querySelector(){return {disabled:false}}}});assert.equal(w.run('saveCalls'),0);
+});
+test('repeated-task section supports Spanish and clears schedules at sign-out',()=>{
+ const w=workspace();w.run("setLanguage('es');db.repeated=[]");assert.match(w.run('recurringPage()'),/Todavía no hay tareas repetidas/);w.run("memberRole='manager';db.repeated=[{id:'r'}];clearWorkspace()");assert.equal(w.run('memberRole'),'employee');assert.equal(w.run('db.repeated.length'),0);
 });
