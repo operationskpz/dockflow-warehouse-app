@@ -57,3 +57,7 @@ Started tasks have Pause task and Finish task controls. Paused tasks show Paused
 ## Today dashboard by worker
 
 Dashboard uses the task due date and the viewer’s local calendar date to show today’s tasks only. Each Team worker has a separate box; shared tasks appear under each assigned worker but totals count each task once. Unassigned tasks have their own box. Future tasks, past-due tasks, and tasks without due dates remain accessible through All tasks. New tasks created from Dashboard default their due date to today. The board rolls to the next day when visible; an open edit form is preserved until it is closed.
+
+## All Tasks date sections
+
+All Tasks groups matching tasks by due date into Today, Tomorrow, and Later. Earlier dates and tasks without a due date appear in their own sections when present. Searches and status/operation filters apply before grouping. Today and tomorrow use the device’s local calendar date, including across month/year boundaries. Operation view keeps its existing list.

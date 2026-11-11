@@ -99,3 +99,13 @@ test('dashboard shows today only and repeats shared tasks in each worker box',()
 test('today dashboard labels translate and an empty day stays useful',()=>{
  const w=workspace();w.run("setLanguage('es');db.employees=[{id:'a',name:'Oscar'}];db.tasks=[]");const html=w.run('dashboard()');assert.match(html,/Tareas de hoy/);assert.match(html,/Oscar/);assert.match(html,/No hay tareas para hoy/);
 });
+test('All Tasks groups every due date once without hiding older or undated tasks',()=>{
+ const w=workspace();w.run("db.tasks=[{id:'a',title:'Today job',due:today(),status:'To Do'},{id:'b',title:'Tomorrow job',due:tomorrow(),status:'To Do'},{id:'c',title:'Later job',due:'2099-01-01',status:'To Do'},{id:'d',title:'Earlier done',due:'2000-01-01',status:'Done'},{id:'e',title:'No date',due:''}]");
+ assert.equal(w.run('taskDateGroups(db.tasks).map(g=>g.key).join(",")'),'today,tomorrow,later,earlier,undated');assert.equal(w.run('taskDateGroups(db.tasks).flatMap(g=>g.tasks).length'),5);assert.equal(w.run('new Set(taskDateGroups(db.tasks).flatMap(g=>g.tasks.map(t=>t.id))).size'),5);const html=w.run('taskPage()');for(const title of ['Today job','Tomorrow job','Later job','Earlier done','No date'])assert.match(html,new RegExp('<h3>'+title+'</h3>'));
+});
+test('date sections respect search and status filters, with Spanish headings',()=>{
+ const w=workspace();w.run("db.tasks=[{id:'a',title:'Pack cartons',category:'Shipping',due:today(),status:'To Do'},{id:'b',title:'Pack pallets',category:'Shipping',due:tomorrow(),status:'Done'}];search='Pack';statusFilter='To Do';categoryFilter='Shipping';setLanguage('es')");const html=w.run('taskPage()');assert.match(html,/Pack cartons/);assert.doesNotMatch(html,/Pack pallets/);assert.match(html,/Hoy/);assert.match(html,/Mañana/);assert.match(html,/Más adelante/);assert.match(html,/No hay tareas en esta sección/);
+});
+test('tomorrow uses the next local calendar date across year boundaries',()=>{
+ const w=workspace();const fixed=new Date(2026,11,31,23,30);w.context.Date=class extends Date{constructor(...args){super(...(args.length?args:[fixed.getTime()]));}};assert.equal(w.run('today()'),'2026-12-31');assert.equal(w.run('tomorrow()'),'2027-01-01');
+});

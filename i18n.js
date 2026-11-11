@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Today':'Hoy','Tomorrow':'Mañana','Later':'Más adelante','Earlier dates':'Fechas anteriores','No due date':'Sin fecha límite','No tasks in this section.':'No hay tareas en esta sección.',
 'Today’s tasks':'Tareas de hoy','Tasks due today':'Tareas para hoy','Shared tasks appear under each assigned worker.':'Las tareas compartidas aparecen en el cuadro de cada trabajador asignado.','tasks today':'tareas para hoy','No tasks due today.':'No hay tareas para hoy.',
 'Pause task':'Pausar tarea','Resume task':'Reanudar tarea','Paused':'En pausa','Paused since':'En pausa desde',
 'Start task':'Iniciar tarea','Finish task':'Finalizar tarea','Started':'Inicio','Finished':'Fin','Total time':'Tiempo total','Time elapsed':'Tiempo transcurrido','Time not recorded':'Tiempo no registrado','Could not update task: ':'No se pudo actualizar la tarea: ','Start the task first':'Primero inicia la tarea','Task is already finished':'La tarea ya está finalizada','Task not found':'No se encontró la tarea','Warehouse access required':'Se requiere acceso al almacén',
