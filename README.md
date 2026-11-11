@@ -88,10 +88,12 @@ The app uses app.css with a navy sidebar, persistent icon navigation, teal actio
 
 ## Estimated duration and remaining time
 
-Task and repeated-task forms have an optional Estimated time (minutes) field, accepting whole minutes from 1 to 525600. Clear it to remove the estimate. Each task has one shared duration estimate, independent of the number of assigned workers. Existing tasks keep no estimate until one is entered.
+Task and repeated-task forms have an optional Estimated time (hours) field. Fractional hours are accepted (0.5 = 30 minutes; 1.5 = 90 minutes) and rounded to the nearest minute. Clear it to remove the estimate. Each task has one shared duration estimate, independent of the number of assigned workers. Existing tasks keep no estimate until one is entered.
 
 Before starting, cards show the planned estimate. After starting, they show a live remaining-time countdown based on working duration, excluding completed pauses and the current pause. Closing the app does not reset the countdown. Paused tasks freeze their countdown. Past the estimate, the card changes to Over estimate with positive overrun time; it never finishes the task automatically. Finished tasks show their final under/over-estimate variance. Updating an estimate while running recalculates against the original working time.
 
 Estimates are stored in Supabase, included in CSV, and copied from recurring schedules into newly generated instances; existing instances are unchanged by schedule edits. Countdown rendering uses the device clock between server-recorded events, while final working time uses server start/finish timestamps. Apply database/task-estimates.sql after repeated-tasks.sql when installing a new project.
 
 Verification: 39 automated checks passed, including countdown arithmetic, paused/reopened views, finished state, overrun, validation, task and schedule payloads, Spanish labels, and updating shared card copies. Read-only SQL verified nullable estimate columns, bounds constraints, and recurring-generator estimate propagation.
+
+Hour input and CSV export preserve the existing estimated_minutes storage and countdown arithmetic. Existing durations are converted for display and are not reinterpreted as hours.

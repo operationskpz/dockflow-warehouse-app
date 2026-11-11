@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Estimated time (hours)':'Tiempo estimado (horas)','e.g. 1.5':'Ej.: 1.5','Enter estimated hours between 0.01 and 8760.':'Introduce un tiempo estimado entre 0.01 y 8760 horas.','Optional. Example: 0.5 = 30 minutes. Rounded to the nearest minute.':'Opcional. Ejemplo: 0.5 = 30 minutos. Se redondea al minuto más cercano.','The countdown stops while the task is paused.':'La cuenta regresiva se detiene mientras la tarea está en pausa.',
 'Estimated time (minutes)':'Tiempo estimado (minutos)','Estimate':'Estimación','Remaining':'Tiempo restante','Over estimate':'Tiempo excedido','Under estimate':'Tiempo ahorrado','e.g. 30':'Ej.: 30','Optional. The countdown stops while the task is paused.':'Opcional. La cuenta regresiva se detiene mientras la tarea está en pausa.','Enter an estimate in whole minutes, from 1 to 525600.':'Introduce un tiempo estimado en minutos enteros, de 1 a 525600.',
 'tasks':'tareas',
 'Details':'Detalles','Working time':'Tiempo de trabajo','Scroll inside a worker box to see more tasks.':'Desplázate dentro del cuadro de un trabajador para ver más tareas.',
