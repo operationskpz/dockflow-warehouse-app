@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'tasks':'tareas',
 'Details':'Detalles','Working time':'Tiempo de trabajo','Scroll inside a worker box to see more tasks.':'Desplázate dentro del cuadro de un trabajador para ver más tareas.',
 'Today':'Hoy','Tomorrow':'Mañana','Later':'Más adelante','Earlier dates':'Fechas anteriores','No due date':'Sin fecha límite','No tasks in this section.':'No hay tareas en esta sección.',
 'Today’s tasks':'Tareas de hoy','Tasks due today':'Tareas para hoy','Shared tasks appear under each assigned worker.':'Las tareas compartidas aparecen en el cuadro de cada trabajador asignado.','tasks today':'tareas para hoy','No tasks due today.':'No hay tareas para hoy.',

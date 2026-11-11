@@ -77,3 +77,7 @@ Verification: 29 automated app checks pass, including schedule payloads, multi-w
 ## Compact worker overview
 
 Dashboard worker boxes use a compact grid (about five columns on a typical desktop, two on phones). Each box has a bounded, keyboard-focusable scrolling task list, so workers with many tasks do not push all other boxes down. Compact rows keep task titles, status, working time and action buttons visible; expand Details for notes, start/finish timestamps, workers and attachments. All Tasks retains its existing full cards.
+
+## All Tasks by worker
+
+Each All Tasks date section now contains compact worker boxes. Only workers with matching tasks in that date section appear. Shared tasks are shown for each assigned worker, while the date section count remains the number of unique tasks. Unassigned or orphaned assignments have an Unassigned box. Search and status/operation filters apply before both date and worker grouping. Each compact card shows its due date, task controls, and expandable details.
