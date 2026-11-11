@@ -22,7 +22,7 @@ test('authenticated account without membership is denied',async()=>{
  const w=workspace();configure(w,false);await w.run('startCloud()');assert.equal(w.run('cloud'),false);assert.equal(w.run('user'),null);assert.equal(w.run('db.tasks.length'),0);assert.match(w.elements.get('#content').innerHTML,/not been approved/);
 });
 test('approved employee receives shared tasks',async()=>{
- const w=workspace();configure(w,true);await w.run('startCloud()');assert.equal(w.run('cloud'),true);assert.equal(w.run('db.tasks[0].id'),'task-a');assert.match(w.elements.get('#content').innerHTML,/Warehouse task/);
+ const w=workspace();configure(w,true);w.run("view='tasks'");await w.run('startCloud()');assert.equal(w.run('cloud'),true);assert.equal(w.run('db.tasks[0].id'),'task-a');assert.match(w.elements.get('#content').innerHTML,/Warehouse task/);
 });
 test('clearing a session removes all tasks and open dialogs',async()=>{
  const w=workspace();configure(w,true);await w.run('startCloud()');w.run("openModal('Test','secret');clearWorkspace()");assert.equal(w.run('cloud'),false);assert.equal(w.run('db.tasks.length'),0);assert.equal(w.elements.get('#modalHost').innerHTML,'');assert.doesNotMatch(w.elements.get('#content').innerHTML,/Warehouse task/);
@@ -91,4 +91,11 @@ test('paused timers freeze and exclude all completed pauses',()=>{
 });
 test('pause and resume controls follow shared task state in both languages',()=>{
  const w=workspace();assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/data-pause="t"/);const paused=w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z'})");assert.match(paused,/data-resume="t"/);assert.match(paused,/data-finish="t"/);assert.doesNotMatch(paused,/data-pause=/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z'})"),/Reanudar tarea/);
+});
+test('dashboard shows today only and repeats shared tasks in each worker box',()=>{
+ const w=workspace();w.run("db.employees=[{id:'a',name:'Alice'},{id:'b',name:'Bob'},{id:'c',name:'Carlos'}];db.tasks=[{id:'shared',title:'Shared today',due:today(),assignees:['a','b'],status:'In Progress'},{id:'unassigned',title:'Unassigned today',due:today(),status:'To Do'},{id:'past',title:'Old task',due:'2000-01-01'},{id:'future',title:'Future task',due:'2099-01-01'},{id:'none',title:'No date task',due:''}]");
+ const html=w.run('dashboard()');assert.equal((html.match(/<h3>Shared today<\/h3>/g)||[]).length,2);assert.equal((html.match(/<h3>Unassigned today<\/h3>/g)||[]).length,1);assert.doesNotMatch(html,/Old task|Future task|No date task/);assert.match(html,/>Alice<\/h2>/);assert.match(html,/>Bob<\/h2>/);assert.match(html,/>Carlos<\/h2>/);assert.match(html,/No tasks due today/);assert.match(html,/Today’s tasks<\/label><strong>2<\/strong>/);assert.equal(w.run('db.tasks.length'),5);assert.match(w.run('taskPage()'),/Old task/);
+});
+test('today dashboard labels translate and an empty day stays useful',()=>{
+ const w=workspace();w.run("setLanguage('es');db.employees=[{id:'a',name:'Oscar'}];db.tasks=[]");const html=w.run('dashboard()');assert.match(html,/Tareas de hoy/);assert.match(html,/Oscar/);assert.match(html,/No hay tareas para hoy/);
 });

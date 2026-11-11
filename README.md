@@ -53,3 +53,7 @@ Task cards have Start task and Finish task buttons. The database records timesta
 ## Pause and resume
 
 Started tasks have Pause task and Finish task controls. Paused tasks show Paused since and Resume task. The timer freezes while paused, including when the app is closed. Pause state and accumulated pause seconds are shared in Supabase. Finishing a paused task excludes its last pause. CSV duration_seconds also excludes pauses. After task-timing.sql, apply database/task-pause.sql for a new installation.
+
+## Today dashboard by worker
+
+Dashboard uses the task due date and the viewer’s local calendar date to show today’s tasks only. Each Team worker has a separate box; shared tasks appear under each assigned worker but totals count each task once. Unassigned tasks have their own box. Future tasks, past-due tasks, and tasks without due dates remain accessible through All tasks. New tasks created from Dashboard default their due date to today. The board rolls to the next day when visible; an open edit form is preserved until it is closed.
