@@ -1,4 +1,4 @@
-const CACHE='dockflow-shell-v20';
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['./','./index.html','./app.css?v=20261111-design','./i18n.js?v=20261111-design','./recurring.js?v=20261111-design','./app.js?v=20261111-design','./vendor/supabase-2.119.0.js','./manifest.webmanifest','./icon.svg','./dockflow-df.svg?v=1'])).then(()=>self.skipWaiting())));
+const CACHE='dockflow-shell-v21';
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['./','./index.html','./app.css?v=20261111-estimates','./i18n.js?v=20261111-estimates','./recurring.js?v=20261111-estimates','./app.js?v=20261111-estimates','./vendor/supabase-2.119.0.js','./manifest.webmanifest','./icon.svg','./dockflow-df.svg?v=1'])).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('dockflow-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==location.origin)return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));});
