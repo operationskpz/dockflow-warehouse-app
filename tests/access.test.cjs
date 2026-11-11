@@ -84,3 +84,11 @@ test('task cards offer one-click start, then finish, then fixed elapsed timing',
 test('missing historical times are explicit and timing controls translate to Spanish',()=>{
  const w=workspace();assert.match(w.run("taskTiming({status:'In Progress'})"),/Time not recorded/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/Iniciar tarea/);assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/Finalizar tarea/);
 });
+test('paused timers freeze and exclude all completed pauses',()=>{
+ const w=workspace();assert.equal(w.run("taskElapsed({started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z',total_pause_seconds:120},Date.parse('2026-11-11T11:00:00Z'))"),480000);
+ const html=w.run("taskTiming({started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z',total_pause_seconds:120})");assert.match(html,/8 min 0 s/);assert.match(html,/Paused since/);assert.doesNotMatch(html,/data-elapsed-start/);
+ assert.equal(w.run("taskElapsed({started_at:'2026-11-11T10:00:00Z',finished_at:'2026-11-11T11:00:00Z',total_pause_seconds:900})"),2700000);
+});
+test('pause and resume controls follow shared task state in both languages',()=>{
+ const w=workspace();assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/data-pause="t"/);const paused=w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z'})");assert.match(paused,/data-resume="t"/);assert.match(paused,/data-finish="t"/);assert.doesNotMatch(paused,/data-pause=/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z'})"),/Reanudar tarea/);
+});
