@@ -45,3 +45,7 @@ Create or edit a task and check each worker under Assign workers. Both names app
 ## Language
 
 Use the Language / Idioma selector at the top of the app, including before sign-in, to choose English or Español. The choice is saved in this browser. Task titles, notes, worker names, and database status values are preserved. Interface labels, status display, and dates follow the chosen language.
+
+## Start and finish task timing
+
+Task cards have Start task and Finish task buttons. The database records timestamps in UTC; cards display them in the viewer’s local timezone. Elapsed time updates each second while the page is visible and continues across app closure. It measures wall-clock time, including breaks; it is not per-worker payroll time. A worker may start a task and another approved worker may finish it. Retried actions preserve the original timestamps. Historical tasks are not backdated. Changing an already completed task back to In Progress begins a new timing cycle, replacing the previous cycle; reopening it as To Do or Blocked clears its timing. CSV includes started_at, finished_at, and duration_seconds. Apply database/task-timing.sql after the other database scripts when installing a new project.

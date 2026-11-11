@@ -76,3 +76,11 @@ test('language choice is stored and restored on reload',()=>{
  const first=vm.createContext({localStorage,document});vm.runInContext(code,first);vm.runInContext("setLanguage('es')",first);assert.equal(document.documentElement.lang,'es');
  const next=vm.createContext({localStorage,document});vm.runInContext(code,next);assert.equal(vm.runInContext("tr('Settings')",next),'Configuración');
 });
+test('task cards offer one-click start, then finish, then fixed elapsed timing',()=>{
+ const w=workspace();assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/data-start="t"/);assert.doesNotMatch(w.run("taskButtons({id:'t',status:'To Do'})"),/data-finish/);
+ assert.match(w.run("taskButtons({id:'t',status:'In Progress',started_at:'2026-11-11T10:00:00Z'})"),/data-finish="t"/);
+ const finished=w.run("taskTiming({started_at:'2026-11-11T10:00:00Z',finished_at:'2026-11-11T11:02:03Z'})");assert.match(finished,/1 h 2 min 3 s/);assert.match(finished,/Started/);assert.match(finished,/Finished/);assert.doesNotMatch(finished,/data-elapsed-start/);assert.doesNotMatch(w.run("taskButtons({id:'t',status:'Done',finished_at:'2026-11-11T11:00:00Z'})"),/data-start|data-finish/);
+});
+test('missing historical times are explicit and timing controls translate to Spanish',()=>{
+ const w=workspace();assert.match(w.run("taskTiming({status:'In Progress'})"),/Time not recorded/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/Iniciar tarea/);assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/Finalizar tarea/);
+});

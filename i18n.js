@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Start task':'Iniciar tarea','Finish task':'Finalizar tarea','Started':'Inicio','Finished':'Fin','Total time':'Tiempo total','Time elapsed':'Tiempo transcurrido','Time not recorded':'Tiempo no registrado','Could not update task: ':'No se pudo actualizar la tarea: ','Start the task first':'Primero inicia la tarea','Task is already finished':'La tarea ya está finalizada','Task not found':'No se encontró la tarea','Warehouse access required':'Se requiere acceso al almacén',
 'Dashboard':'Panel','Tasks':'Tareas','Operations':'Operaciones','Team':'Equipo','Reports':'Informes','Settings':'Configuración','Language':'Idioma',
 'Warehouse overview':'Resumen del almacén','Good morning, team':'Hola, equipo','Task management':'Gestión de tareas','All tasks':'Todas las tareas','Warehouse workflow':'Flujo de trabajo','People & assignments':'Personas y asignaciones','Insights & activity':'Actividad e informes','Workspace configuration':'Configuración del espacio',
 'Shared warehouse':'Almacén compartido','Shared warehouse workspace.':'Espacio compartido del almacén.','WAREHOUSE WORKSPACE':'ESPACIO DEL ALMACÉN','Warehouse workspace':'Espacio del almacén','Welcome to DockFlow':'Bienvenido a DockFlow',
