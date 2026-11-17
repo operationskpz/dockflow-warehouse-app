@@ -3,14 +3,15 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const path=require('node:path');
-function workspace(){
- const elements=new Map();
+function workspace(extra={}){
+ const elements=new Map(),listeners=new Map(),windowListeners=new Map();
  const element=key=>{if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',disabled:false,classList:{add(){},toggle(){}},querySelector(){return element('button')}});return elements.get(key)};
- const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener(){}},window:{},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}getAll(key){const v=this.values[key];return Array.isArray(v)?v:v?[v]:[];}}});
+ const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},window:{addEventListener:(type,fn)=>windowListeners.set(type,fn)},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}getAll(key){const v=this.values[key];return Array.isArray(v)?v:v?[v]:[];}}});
+ Object.assign(context,extra);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../recurring.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app.js'),'utf8'),context);
- return {context,elements,run:s=>vm.runInContext(s,context)};
+ return {context,elements,listeners,windowListeners,run:s=>vm.runInContext(s,context)};
 }
 function configure(w,approved){
  w.context.approved=approved;
@@ -172,4 +173,27 @@ test('daily refresh waits for editing to finish and refreshes only once',async()
 });
 test('carried-over task cards show their original due date in both languages',()=>{
  const w=workspace();w.run("carried={id:'t',title:'Unfinished work',status:'To Do',priority:'Medium',due:today(),original_due:'2026-11-10',carryover_count:1}");const html=w.run('workerTaskHtml(carried)');assert.match(html,/Carried over/);assert.match(html,/Original due date/);assert.match(html,/2026/);w.run("setLanguage('es')");assert.match(w.run('workerTaskHtml(carried)'),/Trasladada de otro día/);assert.equal(w.run("carryoverBadge({})"),'');
+});
+function routedWorkspace(href){
+ const location=new URL(href),entries=[href];let position=0;
+ const history={pushState(data,title,url){location.href=new URL(url,location.href).href;entries.splice(position+1);entries.push(location.href);position++;},replaceState(data,title,url){location.href=new URL(url,location.href).href;entries[position]=location.href;}};
+ const w=workspace({URL,location,history});return {...w,location,entries,back(){if(position>0){position--;location.href=entries[position];w.windowListeners.get('popstate')();}},forward(){if(position<entries.length-1){position++;location.href=entries[position];w.windowListeners.get('popstate')();}}};
+}
+test('all seven page links restore their target while keeping signed-out data protected',()=>{
+ for(const page of ['dashboard','tasks','repeated','operations','team','reports','settings']){const w=routedWorkspace('https://operationskpz.github.io/dockflow-warehouse-app/?page='+page);assert.equal(w.run('view'),page);assert.match(w.elements.get('#content').innerHTML,/Employee sign-in/);assert.equal(w.run('db.tasks.length'),0);assert.equal(w.run('pageLink(view)'),'?page='+page);}
+ const invalid=routedWorkspace('https://operationskpz.github.io/dockflow-warehouse-app/?page=__proto__');assert.equal(invalid.run('view'),'dashboard');
+});
+test('page navigation supports Back Forward refresh and no duplicate history entries',()=>{
+ const w=routedWorkspace('https://operationskpz.github.io/dockflow-warehouse-app/?page=tasks');w.run("navigateTo('reports')");assert.equal(w.location.search,'?page=reports');w.run("navigateTo('reports')");assert.equal(w.entries.length,2);w.back();assert.equal(w.run('view'),'tasks');w.forward();assert.equal(w.run('view'),'reports');const reload=routedWorkspace(w.location.href);assert.equal(reload.run('view'),'reports');
+});
+test('Ctrl-click remains a native new-tab link and normal clicks navigate in the app',async()=>{
+ const w=routedWorkspace('https://operationskpz.github.io/dockflow-warehouse-app/?page=dashboard');w.run('cloud=true;render=()=>{}');let prevented=false;const link={dataset:{view:'team'}},target={closest:s=>s==='a[data-view],a[data-goto]'?link:null};await w.listeners.get('click')({target,ctrlKey:true,button:0,preventDefault(){prevented=true;}});assert.equal(prevented,false);assert.equal(w.entries.length,1);await w.listeners.get('click')({target,ctrlKey:false,button:0,preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(w.run('view'),'team');assert.equal(w.location.search,'?page=team');
+});
+test('page routing does not consume password recovery tokens or reset parameters',()=>{
+ const href='https://operationskpz.github.io/dockflow-warehouse-app/?page=settings&reset=1#type=recovery&access_token=private-example';const w=routedWorkspace(href);assert.equal(w.run('view'),'settings');assert.equal(w.run('recoveryMode'),true);assert.equal(w.location.href,href);assert.match(w.elements.get('#content').innerHTML,/Reset your password/);assert.equal(w.run('db.tasks.length'),0);
+});
+test('offline bookmarked page navigation falls back to the cached app shell',async()=>{
+ const handlers=new Map();let response;
+ const context=vm.createContext({self:{addEventListener:(type,fn)=>handlers.set(type,fn)},URL,location:{origin:'https://operationskpz.github.io'},fetch:async()=>{throw Error('offline')},caches:{match:async path=>path==='./index.html'?'cached-shell':undefined}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8'),context);handlers.get('fetch')({request:{method:'GET',mode:'navigate',url:'https://operationskpz.github.io/dockflow-warehouse-app/?page=reports'},respondWith:p=>{response=p}});assert.equal(await response,'cached-shell');
 });
