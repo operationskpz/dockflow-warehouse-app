@@ -14,8 +14,11 @@ function scheduleTaskUpdates(thread){if(!currentTaskThread(thread))return;taskUp
 async function taskUpdatesModal(id){
  if(!cloud)return;const task=db.tasks.find(t=>t.id===id);if(!task)return;stopTaskUpdates();
  const thread={id,epoch,updates:[],reading:false,posting:false};
- openModal('Task updates',`<div class="updates-task-title">${esc(task.title)}</div><div class="updates-toolbar"><span class="muted">${tr('Latest 100 updates')}</span><button type="button" class="btn secondary" id="refreshTaskUpdates">${tr('Refresh')}</button></div><p id="taskUpdateNotice" role="status" class="muted"></p><div id="taskUpdateList" class="task-update-list"><p class="muted">${tr('Loading updates…')}</p></div><form id="taskUpdateForm" class="task-update-form"><label for="taskUpdateBody">${tr('Share an update')}</label><textarea id="taskUpdateBody" name="body" maxlength="4000" placeholder="${tr('Progress, questions, or anything the team should know…')}"></textarea><label for="taskUpdatePhoto">${tr('Photo (optional, up to 5 MB)')}</label><input id="taskUpdatePhoto" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="taskUpdatePostError" role="alert" class="update-error"></p><button class="btn" type="submit">${tr('Post update')}</button></form>`);
+ openModal('Help',`<div class="updates-task-title">${esc(task.title)}</div><div class="updates-toolbar"><span class="muted">${tr('Latest 100 updates')}</span><button type="button" class="btn secondary" id="refreshTaskUpdates">${tr('Refresh')}</button></div><p id="taskUpdateNotice" role="status" class="muted"></p><div id="taskUpdateList" class="task-update-list"><p class="muted">${tr('Loading updates…')}</p></div><form id="taskUpdateForm" class="task-update-form"><label for="taskUpdateBody">${tr('Ask for help or share progress')}</label><textarea id="taskUpdateBody" name="body" maxlength="4000" placeholder="${tr('Progress, questions, or anything the team should know…')}"></textarea><label for="taskUpdatePhoto">${tr('Photo (optional, up to 5 MB)')}</label><div class="help-photo-actions"><button type="button" class="btn secondary" id="takeHelpPhoto">${uiIcon('camera')}${tr('Take a photo')}</button><input id="taskUpdatePhoto" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="${tr('Choose a photo')}"></div><input id="helpCameraPhoto" class="camera-file-input" type="file" accept="image/*" capture="environment" aria-label="${tr('Take a photo')}"><p id="helpSelectedPhoto" class="muted" role="status"></p><p id="taskUpdatePostError" role="alert" class="update-error"></p><button class="btn" type="submit">${tr('Send message')}</button></form>`);
  taskUpdateThread=thread;
+ $('#takeHelpPhoto').onclick=()=>$('#helpCameraPhoto').click();
+ const choosePhoto=event=>{thread.photo=event.target.files?.[0]||null;$('#helpSelectedPhoto').textContent=thread.photo?tr('Selected photo: ')+thread.photo.name:'';};
+ $('#helpCameraPhoto').onchange=choosePhoto;$('#taskUpdatePhoto').onchange=choosePhoto;
  $('#refreshTaskUpdates').onclick=()=>refreshTaskUpdates(thread);
  $('#taskUpdateList').onclick=event=>{const button=event.target.closest('[data-update-photo]');if(button)openTaskUpdatePhoto(button.dataset.updatePhoto,thread);};
  $('#taskUpdateForm').onsubmit=event=>postTaskUpdate(event,thread);
@@ -23,13 +26,13 @@ async function taskUpdatesModal(id){
 }
 async function postTaskUpdate(event,thread=taskUpdateThread){
  event.preventDefault();if(!currentTaskThread(thread)||thread.posting)return;
- const form=event.target,values=new FormData(form),file=values.get('photo'),button=form.querySelector('[type="submit"]');let uploaded='',written=false;
+ const form=event.target,values=new FormData(form),file=thread.photo||values.get('photo'),button=form.querySelector('[type="submit"]');let uploaded='',written=false;
  thread.posting=true;button.disabled=true;$('#taskUpdatePostError').textContent='';
  try{const body=validateTaskUpdate(values.get('body'),file),id=uid();
   if(file?.size){uploaded=`${user.id}/updates/${id}/${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;const result=await client.storage.from('dockflow-attachments').upload(uploaded,file,{contentType:file.type});if(result.error)throw result.error;}
   if(!currentTaskThread(thread))throw Error(tr('Your session changed. Please sign in again.'));
   const result=await client.from('dockflow_task_updates').insert({id,task_id:thread.id,body,photo_path:uploaded||null}).select('id').single();if(result.error)throw result.error;written=true;
-  if(!currentTaskThread(thread))return;form.reset();await refreshTaskUpdates(thread);
+  if(!currentTaskThread(thread))return;form.reset();thread.photo=null;$('#helpSelectedPhoto').textContent='';await refreshTaskUpdates(thread);
  }catch(error){if(uploaded&&!written&&thread.epoch===epoch&&cloud)await client.storage.from('dockflow-attachments').remove([uploaded]);if(currentTaskThread(thread))$('#taskUpdatePostError').textContent=tr('Could not post update: ')+tr(error.message);}
  finally{thread.posting=false;if(currentTaskThread(thread))button.disabled=false;}
 }
