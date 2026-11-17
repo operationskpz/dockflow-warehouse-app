@@ -1,1 +1,21 @@
-{"name":"DockFlow Warehouse Tasks","short_name":"DockFlow","start_url":"./index.html","display":"standalone","background_color":"#f1f5fc","theme_color":"#142747","icons":[{"src":"dockflow-df.svg?v=2","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+ "id":"./",
+ "name":"DockFlow Warehouse",
+ "short_name":"DockFlow",
+ "description":"Manage warehouse tasks, workers, and shared progress.",
+ "lang":"en",
+ "start_url":"./?page=dashboard&source=app",
+ "scope":"./",
+ "display":"standalone",
+ "background_color":"#f1f5fc",
+ "theme_color":"#142747",
+ "icons":[
+  {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+  {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+  {"src":"icons/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+ ],
+ "shortcuts":[
+  {"name":"Dashboard","url":"./?page=dashboard"},
+  {"name":"Tasks","url":"./?page=tasks"}
+ ]
+}
