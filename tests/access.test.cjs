@@ -234,3 +234,7 @@ test('assignment picker shows only workers and saves only assignment fields',asy
  await w.elements.get('#assignmentForm').onsubmit({preventDefault(){},target:{values:{assignees:['a','b','a']},querySelector(){return {disabled:false}}}});
  assert.equal(w.run('assignmentTable'),'dockflow_tasks');assert.equal(w.run('JSON.stringify(assignmentPatch)'),JSON.stringify({assignee:'a',assignees:['a','b']}));assert.equal(w.run('JSON.stringify(assignmentFilter)'),JSON.stringify(['id','t']));assert.equal(w.elements.get('#modalHost').innerHTML,'');
 });
+test('finished tasks disappear from dashboard boxes but remain in All Tasks',()=>{
+ const w=workspace();w.run("db.employees=[{id:'a',name:'Oscar'}];db.tasks=[{id:'open',title:'Still working',due:today(),status:'In Progress',assignees:['a'],estimated_minutes:60},{id:'done',title:'Finished assigned',due:today(),status:'Done',assignees:['a'],estimated_minutes:120},{id:'unassigned',title:'Finished unassigned',due:today(),status:'Done',assignees:[]},{id:'timestamp',title:'Finished timestamp',due:today(),status:'In Progress',finished_at:new Date().toISOString(),assignees:['a']}]");
+ const html=w.run('dashboard()');assert.match(html,/Still working/);assert.doesNotMatch(html,/Finished assigned|Finished unassigned|Finished timestamp/);assert.match(html,/Completed<\/label><strong>3<\/strong>/);assert.match(html,/1 h<\/strong>/);assert.equal(w.run('db.tasks.length'),4);const all=w.run('taskPage()');assert.match(all,/Finished assigned/);assert.match(all,/Finished unassigned/);
+});

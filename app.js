@@ -68,9 +68,9 @@ function workerTaskHtml(t,showDue=false){
 function todaysTasks(){return db.tasks.filter(t=>t.due===today());}
 function dashboard(){
  displayedDashboardDay=today();
- const tasks=todaysTasks(),done=tasks.filter(t=>t.status==='Done').length;
- const cards=db.employees.map(e=>({name:e.name,tasks:tasks.filter(t=>isAssigned(t,e.id))}));
- const known=new Set(db.employees.map(e=>e.id));const unassigned=tasks.filter(t=>!assignedIds(t).some(id=>known.has(id)));
+ const tasks=todaysTasks(),done=tasks.filter(t=>t.status==='Done'||t.finished_at).length,openTasks=tasks.filter(t=>t.status!=='Done'&&!t.finished_at);
+ const cards=db.employees.map(e=>({name:e.name,tasks:openTasks.filter(t=>isAssigned(t,e.id))}));
+ const known=new Set(db.employees.map(e=>e.id));const unassigned=openTasks.filter(t=>!assignedIds(t).some(id=>known.has(id)));
  if(unassigned.length)cards.push({name:tr('Unassigned'),tasks:unassigned});
  const stats=[['Today’s tasks',tasks.length],['In progress',tasks.filter(t=>t.status==='In Progress'&&!t.paused_at).length],['Paused',tasks.filter(t=>t.paused_at&&!t.finished_at).length],['Completed',done]];
  return `<p class="muted" style="margin-bottom:18px">${tr('Tasks due today')} · ${esc(new Date().toLocaleDateString(language==='es'?'es':'en',{weekday:'long',month:'long',day:'numeric',year:'numeric'}))}</p><div class="stats dashboard-stats">${stats.map(([label,value])=>`<div class="stat"><label>${tr(label)}</label><strong>${value}</strong></div>`).join('')}</div><p class="muted">${tr('Shared tasks appear under each assigned worker.')} ${tr('Scroll inside a worker box to see more tasks.')}</p><div class="worker-board">${cards.map(card=>`<section class="panel worker-card" style="${workerStyle(card.name)}">${workerHeading(card.name,card.tasks)}<div class="worker-task-list" tabindex="0" role="region" aria-label="${esc(card.name)}">${card.tasks.length?[...card.tasks].sort(compareWorkerTasks).map(t=>workerTaskHtml(t)).join(''):`<div class="empty">${tr('No tasks due today.')}</div>`}</div></section>`).join('')||`<section class="panel"><div class="empty">${tr('No tasks due today.')}</div></section>`}</div><div style="margin-top:20px"><button class="btn secondary" data-goto="tasks">${tr('View all tasks')}</button></div>`;
