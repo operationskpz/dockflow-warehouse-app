@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Previous month':'Mes anterior','Next month':'Mes siguiente','Choose a date':'Elige una fecha','Clear':'Borrar','Close':'Cerrar',
 'Task details':'Detalles de la tarea',
 'Save assignment':'Guardar asignación','Select at least one worker.':'Selecciona al menos un trabajador.',
 'Assign to':'Asignar a',
