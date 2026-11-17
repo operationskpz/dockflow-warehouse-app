@@ -6,7 +6,7 @@ const path=require('node:path');
 function workspace(extra={}){
  const elements=new Map(),listeners=new Map(),windowListeners=new Map();
  const element=key=>{if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',disabled:false,classList:{add(){},toggle(){}},querySelector(){return element('button')}});return elements.get(key)};
- const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},window:{addEventListener:(type,fn)=>windowListeners.set(type,fn)},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}getAll(key){const v=this.values[key];return Array.isArray(v)?v:v?[v]:[];}}});
+ const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],addEventListener:(type,fn)=>listeners.set(type,fn)},window:{addEventListener:(type,fn)=>windowListeners.set(type,fn)},navigator:{},crypto:require('node:crypto').webcrypto,console,setTimeout,clearTimeout,AbortController,alert(){},FormData:class{constructor(target){this.values=target.values;}get(key){return this.values[key];}getAll(key){const v=this.values[key];return Array.isArray(v)?v:v?[v]:[];}}});
  Object.assign(context,extra);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../recurring.js'),'utf8'),context);
@@ -196,4 +196,31 @@ test('offline bookmarked page navigation falls back to the cached app shell',asy
  const handlers=new Map();let response;
  const context=vm.createContext({self:{addEventListener:(type,fn)=>handlers.set(type,fn)},URL,location:{origin:'https://operationskpz.github.io'},fetch:async()=>{throw Error('offline')},caches:{match:async path=>path==='./index.html'?'cached-shell':undefined}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8'),context);handlers.get('fetch')({request:{method:'GET',mode:'navigate',url:'https://operationskpz.github.io/dockflow-warehouse-app/?page=reports'},respondWith:p=>{response=p}});assert.equal(await response,'cached-shell');
+});
+test('returning to a signed-in tab refreshes quietly without clearing the page or form',async()=>{
+ const w=workspace();configure(w,true);w.run("view='tasks'");await w.run('startCloud()');const html=w.elements.get('#content').innerHTML;w.run("sessionReads=0;client.auth.getSession=async()=>{sessionReads++;throw Error('Should not restart sign-in')};loadCloud=()=>new Promise(resolve=>{finishResume=resolve})");const pending=w.run('handlePageVisible()');assert.equal(w.run('cloud'),true);assert.equal(w.run('loading'),false);assert.equal(w.elements.get('#content').innerHTML,html);assert.equal(w.run('sessionReads'),0);w.run("$('#modalHost').innerHTML='<form>Unsubmitted changes</form>';finishResume()");await pending;assert.match(w.elements.get('#modalHost').innerHTML,/Unsubmitted changes/);assert.equal(w.elements.get('#content').innerHTML,html);
+});
+test('same-user auth refresh events retain the current page and unsaved work',async()=>{
+ const w=workspace();configure(w,true);await w.run('startCloud()');w.run("$('#modalHost').innerHTML='<form>Unsaved</form>';handleAuthChange('SIGNED_IN',{user:{id:'employee-a',email:'a@example.com'}});handleAuthChange('TOKEN_REFRESHED',{user:{id:'employee-a',email:'a@example.com'}})");assert.equal(w.run('cloud'),true);assert.equal(w.run('loading'),false);assert.equal(w.run('db.tasks.length'),1);assert.match(w.elements.get('#modalHost').innerHTML,/Unsaved/);
+});
+test('overlapping initial session restores share one attempt',async()=>{
+ const w=workspace();configure(w,true);w.run("sessionReads=0;client.auth.getSession=()=>{sessionReads++;return new Promise(resolve=>{resolveRestore=resolve})}");const first=w.run('startCloud()'),second=w.run('startCloud()');assert.equal(first,second);assert.equal(w.run('sessionReads'),1);w.run("resolveRestore({data:{session:{user:{id:'employee-a',email:'a@example.com'}}}})");await first;assert.equal(w.run('cloud'),true);assert.equal(w.run('loading'),false);
+});
+test('initial connection timeout ends the loading screen and ignores a late session',async()=>{
+ const w=workspace();configure(w,true);w.run("const normalTimeout=withTimeout;withTimeout=p=>normalTimeout(p,1);client.auth.getSession=()=>new Promise(resolve=>{lateSession=resolve})");await w.run('startCloud()');assert.equal(w.run('loading'),false);assert.equal(w.run('cloud'),false);assert.match(w.elements.get('#content').innerHTML,/Connection timed out/);assert.match(w.elements.get('#content').innerHTML,/Retry connection/);w.run("lateSession({data:{session:{user:{id:'employee-a'}}}})");await new Promise(resolve=>setImmediate(resolve));assert.equal(w.run('db.tasks.length'),0);
+});
+test('background connection failure preserves the workspace and offers a successful retry',async()=>{
+ const w=workspace();configure(w,true);w.run("view='tasks'");await w.run('startCloud()');const html=w.elements.get('#content').innerHTML;w.run("loadCloud=async()=>{throw Error('offline')}");await w.run('handlePageVisible()');assert.equal(w.run('cloud'),true);assert.equal(w.run('db.tasks.length'),1);assert.equal(w.elements.get('#content').innerHTML,html);assert.match(w.elements.get('#notice').innerHTML,/Retry connection/);w.run('loadCloud=async()=>{}');await w.run('refreshTaskDay(true)');assert.equal(w.run('connectionWarning'),'');assert.equal(w.run('cloud'),true);
+});
+test('loss of warehouse access still clears private data during a background refresh',async()=>{
+ const w=workspace();configure(w,true);await w.run('startCloud()');w.run("loadCloud=async()=>{throw Object.assign(Error('Access revoked'),{code:'WAREHOUSE_ACCESS_DENIED'})}");await w.run('handlePageVisible()');assert.equal(w.run('cloud'),false);assert.equal(w.run('db.tasks.length'),0);assert.match(w.elements.get('#content').innerHTML,/Access revoked/);
+});
+test('network timeout aborts the underlying request instead of retaining its auth lock',async()=>{
+ const w=workspace({fetch:(input,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('request aborted')),{once:true}))});await assert.rejects(w.run("boundedFetch('https://example.invalid',{},1)"),/request aborted/);
+});
+test('returning to a login or password reset form preserves input without another restore',()=>{
+ const w=workspace();configure(w,true);w.run("sessionReads=0;client.auth.getSession=async()=>{sessionReads++;return {data:{session:null}}};loading=false");w.context.document.activeElement={matches:()=>true};w.run('handlePageVisible()');assert.equal(w.run('sessionReads'),0);w.context.document.activeElement=null;w.run('recoveryMode=true;recoveryReady=true;handlePageVisible()');assert.equal(w.run('sessionReads'),0);
+});
+test('bundled Supabase SDK routes its data requests through the configured fetch adapter',async()=>{
+ let calls=0;const c=vm.createContext({URL,Headers,Request,Response,AbortController,TextEncoder,TextDecoder,WebSocket,console,setTimeout,clearTimeout,setInterval,clearInterval,crypto:require('node:crypto').webcrypto});vm.runInContext(fs.readFileSync(path.join(__dirname,'../vendor/supabase-2.119.0.js'),'utf8'),c);const client=c.supabase.createClient('https://example.supabase.co','public-test-key',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async()=>{calls++;return new Response('[]',{status:200,headers:{'Content-Type':'application/json'}})}}});const result=await client.from('probe').select('*');assert.equal(result.error,null);assert.equal(calls,1);
 });

@@ -111,3 +111,11 @@ Apply database/task-carryover.sql after the prior scripts for a new installation
 ## Direct page links
 
 Each menu item is now a native link: ?page=dashboard, ?page=tasks, ?page=repeated, ?page=operations, ?page=team, ?page=reports, and ?page=settings. These work on GitHub Pages without server rewrites. A bookmark or refresh restores the selected page after sign-in. Regular clicks keep the app running and update browser history; Back/Forward and opening a link in another tab work. Invalid page names fall back to Dashboard. Private content is still gated by employee authentication and warehouse membership. Password recovery query parameters and tokens are left untouched during initial route selection. Offline navigation uses the cached app shell; warehouse operations still require a connection.
+
+## Returning to DockFlow
+
+Tab visibility and back/forward-cache restoration now refresh an already authenticated workspace in the background instead of starting the full sign-in loader. Same-user SIGNED_IN and TOKEN_REFRESHED events update the user reference without clearing the page or forms. Cold session restoration is single-flight, with 15-second bounds on session/data waits. The Supabase client uses a fetch adapter that aborts stalled network requests after 15 seconds, allowing auth locks to release.
+
+Transient background errors retain the already-loaded same-user workspace and show Retry connection. A real sign-out, user switch, expired authorization or lost warehouse membership clears private data. Pending loads cannot restore data after the session changes. Login and password-reset input is preserved when switching tabs. Data or membership is never approved based on user_metadata.
+
+Regression checks cover quiet tab resume, repeated auth events, concurrent restoration, initial timeout and late results, background retry, access revocation, fetch abort, recovery/login forms and the actual vendored SDK’s custom-fetch integration. Browser visual testing was unavailable in this environment.

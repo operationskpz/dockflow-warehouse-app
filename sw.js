@@ -1,4 +1,4 @@
-const CACHE='dockflow-shell-v25';
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['./','./index.html','./app.css?v=20261117-page-links','./i18n.js?v=20261117-page-links','./recurring.js?v=20261117-page-links','./app.js?v=20261117-page-links','./vendor/supabase-2.119.0.js','./manifest.webmanifest','./icon.svg','./dockflow-df.svg?v=1'])).then(()=>self.skipWaiting())));
+const CACHE='dockflow-shell-v26';
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['./','./index.html','./app.css?v=20261117-session-resume','./i18n.js?v=20261117-session-resume','./recurring.js?v=20261117-session-resume','./app.js?v=20261117-session-resume','./vendor/supabase-2.119.0.js','./manifest.webmanifest','./icon.svg','./dockflow-df.svg?v=1'])).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('dockflow-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==location.origin)return;event.respondWith(fetch(event.request).catch(()=>event.request.mode==='navigate'?caches.match('./index.html'):caches.match(event.request)));});
