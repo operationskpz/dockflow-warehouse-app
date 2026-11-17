@@ -283,7 +283,7 @@ function movedWorkerIds(task,source,target){
  return [...new Set(target?[...next,target]:next)];
 }
 function finishTaskDrag(){document.querySelectorAll('.drop-target,.task-is-dragging').forEach(el=>el.classList.remove('drop-target','task-is-dragging'));document.body.classList.remove('task-dragging');dragTaskState=null;}
-function markTaskDrop(target){document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));if(target&&dragTaskState&&target.dataset.workerId!==dragTaskState.source)target.classList.add('drop-target');}
+function markTaskDrop(target){document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));if(target&&dragTaskState&&target.dataset.workerId!==dragTaskState.source){target.dataset.dropMessage=target.dataset.workerId?tr('Assign to')+' '+who(target.dataset.workerId):tr('Unassigned');target.classList.add('drop-target');}}
 async function dropWorkerTask(payload,target){
  if(!cloud||taskMoveSaving||payload.source===target)return;
  const task=db.tasks.find(t=>t.id===payload.id);if(!task)return;
@@ -291,15 +291,23 @@ async function dropWorkerTask(payload,target){
  try{
   const assignees=movedWorkerIds(task,payload.source,target);
   const result=await client.from('dockflow_tasks').update({assignee:assignees[0]||'',assignees}).eq('id',task.id).select('id').single();if(result.error)throw result.error;
-  if(run!==epoch)return;await loadCloud(run);if(run===epoch)render();
+  if(run!==epoch)return;await loadCloud(run);if(run===epoch){closeModal();render();}
  }catch(error){if(run===epoch)alert(tr('Could not move task: ')+tr(error.message));}finally{taskMoveSaving=false;}
+}
+function confirmTaskDrop(payload,target){
+ if(!cloud||taskMoveSaving||payload.source===target)return;
+ const task=db.tasks.find(t=>t.id===payload.id);if(!task)return;const run=epoch;
+ const destination=target?who(target):tr('Unassigned');
+ openModal('Confirm assignment',`<div class="assignment-confirm"><span class="assignment-confirm-icon">${uiIcon('people')}</span><p>${tr('Assign this task to')} <strong>${esc(destination)}</strong>?</p><div class="assignment-confirm-task">${esc(task.title)}</div><p class="muted">${tr('Other assigned workers will stay on this task.')}</p></div><div class="actions"><button type="button" class="btn secondary" id="cancelModal">${tr('Cancel')}</button><button type="button" class="btn" id="confirmTaskMove">${tr('Confirm assignment')}</button></div>`);
+ $('#confirmTaskMove').onclick=async event=>{if(run!==epoch||!cloud)return;const button=event.currentTarget;button.disabled=true;await dropWorkerTask(payload,target);if(run===epoch)button.disabled=false;};
 }
 document.addEventListener('dragstart',event=>{
  const task=event.target.closest('[data-drag-task]'),card=task?.closest('[data-worker-id]');if(!cloud||taskMoveSaving||!task||!card||event.target.closest('a,input,select,textarea,summary,button:not(.task-drag-handle)')){event.preventDefault();return;}
  dragTaskState={id:task.dataset.dragTask,source:card.dataset.workerId};event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',task.dataset.dragTask);task.classList.add('task-is-dragging');document.body.classList.add('task-dragging');
 });
+document.addEventListener('dragenter',event=>{if(dragTaskState&&cloud&&event.target.closest('[data-worker-id]'))event.preventDefault();});
 document.addEventListener('dragover',event=>{if(!dragTaskState||!cloud)return;const card=event.target.closest('[data-worker-id]');markTaskDrop(card);if(card){event.preventDefault();event.dataTransfer.dropEffect='move';}});
-document.addEventListener('drop',async event=>{if(!dragTaskState)return;const card=event.target.closest('[data-worker-id]'),payload=dragTaskState;event.preventDefault();finishTaskDrag();if(card)await dropWorkerTask(payload,card.dataset.workerId);});
+document.addEventListener('drop',async event=>{if(!dragTaskState)return;const card=event.target.closest('[data-worker-id]'),payload=dragTaskState;event.preventDefault();finishTaskDrag();if(card)confirmTaskDrop(payload,card.dataset.workerId);});
 document.addEventListener('dragend',finishTaskDrag);
 document.addEventListener('pointerdown',event=>{
  if(event.pointerType==='mouse'||!cloud||taskMoveSaving)return;const handle=event.target.closest('.task-drag-handle'),task=handle?.closest('[data-drag-task]'),card=task?.closest('[data-worker-id]');if(!task||!card)return;
@@ -312,6 +320,6 @@ document.addEventListener('pointermove',event=>{
  if(event.clientY<70)window.scrollBy(0,-18);else if(event.clientY>window.innerHeight-100)window.scrollBy(0,18);
 },{passive:false});
 document.addEventListener('pointerup',async event=>{
- const touch=touchTaskDrag;if(!touch||touch.pointer!==event.pointerId)return;touchTaskDrag=null;if(!touch.active)return;event.preventDefault();const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-worker-id]');touch.handle.dataset.suppressClick='1';setTimeout(()=>{delete touch.handle.dataset.suppressClick;},100);finishTaskDrag();if(target)await dropWorkerTask(touch.payload,target.dataset.workerId);
+ const touch=touchTaskDrag;if(!touch||touch.pointer!==event.pointerId)return;touchTaskDrag=null;if(!touch.active)return;event.preventDefault();const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-worker-id]');touch.handle.dataset.suppressClick='1';setTimeout(()=>{delete touch.handle.dataset.suppressClick;},100);finishTaskDrag();if(target)confirmTaskDrop(touch.payload,target.dataset.workerId);
 });
-document.addEventListener('pointercancel',()=>{touchTaskDrag=null;finishTaskDrag();});
+document.addEventListener('pointercancel',()=>{if(!touchTaskDrag)return;touchTaskDrag=null;finishTaskDrag();});

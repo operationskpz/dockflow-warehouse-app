@@ -244,3 +244,9 @@ test('drag reassignment assigns unassigned tasks and preserves other shared work
 test('task drops save only worker assignments for the selected task',async()=>{
  const w=workspace();w.run("cloud=true;db.employees=[{id:'a'},{id:'b'},{id:'c'}];db.tasks=[{id:'t',assignees:['a','c'],title:'Keep title'}];loadCloud=async()=>{};client={from:table=>{moveTable=table;return {update:obj=>{movePatch=obj;return {eq:(key,id)=>{moveId=id;return {select:()=>({single:async()=>({data:{id},error:null})})}}}}}}};");await w.run("dropWorkerTask({id:'t',source:'a'},'b')");assert.equal(w.run('moveTable'),'dockflow_tasks');assert.equal(w.run('moveId'),'t');assert.equal(w.run('JSON.stringify(movePatch)'),'{"assignee":"c","assignees":["c","b"]}');assert.equal(w.run('taskMoveSaving'),false);
 });
+test('native drag survives the browser pointercancel event',()=>{
+ const w=workspace();w.run("dragTaskState={id:'t',source:''};touchTaskDrag=null");w.listeners.get('pointercancel')({});assert.equal(w.run('dragTaskState.id'),'t');
+});
+test('dropping asks for confirmation and only saves after confirmation',async()=>{
+ const w=workspace();w.run("cloud=true;db.employees=[{id:'b',name:'Bob'}];db.tasks=[{id:'t',title:'Packing',assignees:[]}];moveCalls=0;dropWorkerTask=async(payload,target)=>{moveCalls++;savedDestination=target};confirmTaskDrop({id:'t',source:''},'b')");assert.match(w.elements.get('#modalHost').innerHTML,/Assign this task to.*Bob/);assert.equal(w.run('moveCalls'),0);const button={disabled:false};await w.elements.get('#confirmTaskMove').onclick({currentTarget:button});assert.equal(w.run('moveCalls'),1);assert.equal(w.run('savedDestination'),'b');assert.equal(button.disabled,false);
+});
