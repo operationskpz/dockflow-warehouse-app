@@ -22,3 +22,5 @@ input,select,textarea{width:100%;max-width:100%;min-height:44px;background:#fff;
 .nav{text-decoration:none}.nav[aria-disabled="true"]{cursor:default}
 
 .worker-hours{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 12px;padding:9px 10px;border-radius:8px;background:var(--worker-tint,#e8f7f3);color:#50677e;font-size:11px;line-height:1.4}.worker-hours strong{color:#173149;font-size:16px;white-space:nowrap;font-variant-numeric:tabular-nums}@media(max-width:700px){.worker-hours{padding:7px;gap:5px;font-size:10px}.worker-hours strong{font-size:14px}}
+
+.btn[data-assign]{background:#315fba;border-color:#315fba;color:#fff}.btn[data-assign]:hover:not(:disabled){background:#244c9c;border-color:#244c9c;box-shadow:0 3px 8px #244c9c24}
