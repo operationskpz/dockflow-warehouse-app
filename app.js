@@ -115,6 +115,16 @@ if(id)$('#deleteTask').onclick=async()=>{
  if(!cloud||!confirm(tr('Delete this task?')))return;const run=epoch;
  try{const r=await client.from('dockflow_tasks').delete().eq('id',id).select('id');if(r.error)throw r.error;if(!r.data.length)throw Error(tr('Task was already removed or access changed.'));if(t.attachment)await client.storage.from('dockflow-attachments').remove([t.attachment]);await loadCloud(run);closeModal();render();}catch(err){alert(tr(err.message));}
 };}
+function assignmentModal(id){
+ const task=db.tasks.find(t=>t.id===id);if(!cloud||!task)return;
+ openModal('Assign workers',`<p>${esc(task.title)}</p><form id="assignmentForm"><fieldset style="border:0;padding:0;margin:0"><legend class="muted">${tr('Assign workers')}</legend>${workerChoices(task)}</fieldset><div class="actions"><button type="button" class="btn secondary" id="cancelModal">${tr('Cancel')}</button><button class="btn" type="submit" ${db.employees.length?'':'disabled'}>${tr('Save assignment')}</button></div></form>`);
+ $('#assignmentForm').onsubmit=async event=>{
+  event.preventDefault();if(!cloud)return;const run=epoch,button=event.target.querySelector('[type="submit"]'),selected=[...new Set(new FormData(event.target).getAll('assignees'))];
+  if(!selected.length){alert(tr('Select at least one worker.'));return;}button.disabled=true;
+  try{const result=await client.from('dockflow_tasks').update({assignee:selected[0],assignees:selected}).eq('id',id).select('id').single();if(result.error)throw result.error;if(run!==epoch)return;await loadCloud(run);if(run!==epoch)return;closeModal();render();}
+  catch(error){if(run===epoch){alert(tr('Could not save task: ')+tr(error.message));button.disabled=false;}}
+ };
+}
 function employeeModal(id){let e=db.employees.find(x=>x.id===id)||{name:''};openModal(id?'Edit employee':'Add employee',`<form id="employeeForm"><div class="field"><label>${tr("Employee / team name")}</label><input name="name" required maxlength="80" value="${esc(e.name)}"></div><div class="actions"><button type="button" class="btn secondary" id="cancelModal">${tr("Cancel")}</button><button class="btn">${tr("Save")}</button></div></form>`);$('#employeeForm').onsubmit=async ev=>{ev.preventDefault();if(!cloud)return;const run=epoch,obj={id:id||uid(),name:ev.target.elements.name.value.trim()};if(!obj.name)return;const button=ev.target.querySelector('button.btn:not([type="button"])');button.disabled=true;try{const r=await client.from('dockflow_employees').upsert(obj).select('id').single();if(r.error)throw r.error;await loadCloud(run);closeModal();render();}catch(err){alert(tr(err.message));button.disabled=false;}};}
 function download(name,contents,type){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([contents],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}function exportCsv(){let fields=['title','category','status','priority','assignee','due','description','attachment','started_at','finished_at','duration_seconds','estimated_hours','original_due','carryover_count','carried_over_at'],rows=[fields.join(','),...db.tasks.map(t=>fields.map(k=>'"'+String(k==='assignee'?assignedNames(t):k==='estimated_hours'?(t.estimated_minutes?Number((t.estimated_minutes/60).toFixed(4)):''):k==='duration_seconds'?(t.started_at&&t.finished_at?Math.floor(taskElapsed(t)/1000):''):t[k]??'').replace(/^[=+@\-\t\r]/,m=>"'"+m).replaceAll('"','""')+'"').join(','))];download('warehouse-tasks.csv',rows.join('\r\n'),'text/csv')}
 async function loadCloud(expected=epoch){
@@ -218,7 +228,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b||!cloud)return;
  if(b.dataset.view){navigateTo(b.dataset.view);}
  else if(b.dataset.goto){navigateTo(b.dataset.goto);}
- else if(b.dataset.assign){taskModal(b.dataset.assign);const worker=$('#taskForm').querySelector('[name=assignees]');worker?.scrollIntoView?.({block:'center'});worker?.focus?.();}
+ else if(b.dataset.assign)assignmentModal(b.dataset.assign);
  else if(b.dataset.start)await changeTaskTiming(b.dataset.start,'start',b);
  else if(b.dataset.pause)await changeTaskTiming(b.dataset.pause,'pause',b);
  else if(b.dataset.resume)await changeTaskTiming(b.dataset.resume,'resume',b);

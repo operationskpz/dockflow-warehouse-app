@@ -228,3 +228,9 @@ test('bundled Supabase SDK routes its data requests through the configured fetch
 test('unassigned tasks offer assignment instead of start, including Spanish',()=>{
  const w=workspace();const html=w.run("taskButtons({id:'t',status:'To Do',assignees:[]})");assert.match(html,/data-assign="t"/);assert.doesNotMatch(html,/data-start=/);assert.match(w.run("taskButtons({id:'t',status:'To Do',assignee:'legacy'})"),/data-start="t"/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/Asignar a/);
 });
+test('assignment picker shows only workers and saves only assignment fields',async()=>{
+ const w=workspace();w.run("cloud=true;db.tasks=[{id:'t',title:'Packing',description:'Keep me',status:'To Do'}];db.employees=[{id:'a',name:'Oscar'},{id:'b',name:'Nelly'}];loadCloud=async()=>{};client={from:table=>{assignmentTable=table;return {update:obj=>{assignmentPatch=obj;return {eq:(key,id)=>{assignmentFilter=[key,id];return {select:()=>({single:async()=>({data:{id},error:null})})}}}}}}};assignmentModal('t')");
+ const html=w.elements.get('#modalHost').innerHTML;assert.match(html,/Oscar/);assert.match(html,/Nelly/);assert.match(html,/Save assignment/);assert.doesNotMatch(html,/name="title"|name="due"|name="description"|name="file"/);
+ await w.elements.get('#assignmentForm').onsubmit({preventDefault(){},target:{values:{assignees:['a','b','a']},querySelector(){return {disabled:false}}}});
+ assert.equal(w.run('assignmentTable'),'dockflow_tasks');assert.equal(w.run('JSON.stringify(assignmentPatch)'),JSON.stringify({assignee:'a',assignees:['a','b']}));assert.equal(w.run('JSON.stringify(assignmentFilter)'),JSON.stringify(['id','t']));assert.equal(w.elements.get('#modalHost').innerHTML,'');
+});
