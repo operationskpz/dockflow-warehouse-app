@@ -10,6 +10,7 @@ function workspace(extra={}){
  Object.assign(context,extra);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../recurring.js'),'utf8'),context);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../task-updates.js'),'utf8'),context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../app.js'),'utf8'),context);
  return {context,elements,listeners,windowListeners,run:s=>vm.runInContext(s,context)};
 }
@@ -264,4 +265,19 @@ test('manual reordering clamps waiting tasks below active tasks and preserves co
 });
 test('saving worker order uses a single shared RPC with worker key and IDs',async()=>{
  const w=workspace();w.run("cloud=true;loadCloud=async()=>{};client={rpc:async(name,args)=>{orderRpc=name;orderArgs=args;return {data:2,error:null}}}");await w.run("saveTaskOrder(['b','a'],'oscar')");assert.equal(w.run('orderRpc'),'dockflow_reorder_tasks');assert.equal(w.run('JSON.stringify(orderArgs)'),'{"ordered_task_ids":["b","a"],"worker_key":"oscar"}');assert.equal(w.run('taskMoveSaving'),false);
+});
+test('task updates validate text and photo limits without changing instructions',()=>{
+ const w=workspace();assert.equal(w.run("validateTaskUpdate(' Progress ',null)"),'Progress');assert.throws(()=>w.run("validateTaskUpdate(' ',null)"),/Write an update/);assert.throws(()=>w.run("validateTaskUpdate('x'.repeat(4001),null)"),/4000/);assert.throws(()=>w.run("validateTaskUpdate('',{size:5000001,type:'image/png'})"),/5 MB/);assert.throws(()=>w.run("validateTaskUpdate('',{size:20,type:'text/html'})"),/JPG/);assert.equal(w.run("validateTaskUpdate('',{size:20,type:'image/png'})"),'');
+});
+test('comment text, author and photo IDs are escaped instead of rendered as HTML',()=>{
+ const w=workspace();const html=w.run("taskUpdateHtml({id:'evil\"',author_name:'<img src=x>',body:'<script>alert(1)</script>',photo_path:'private/file',created_at:'2026-11-17T15:00:00Z'})");assert.doesNotMatch(html,/<img|<script/);assert.match(html,/&lt;script&gt;/);assert.match(html,/View photo/);assert.doesNotMatch(html,/private\/file/);
+});
+test('posting a comment inserts only update fields and trusts server attribution',async()=>{
+ const w=workspace();w.run("cloud=true;user={id:'a'};thread={id:'t',epoch,updates:[],posting:false};taskUpdateThread=thread;refreshTaskUpdates=async()=>{};client={from:table=>{postedTable=table;return {insert:obj=>{postedUpdate=obj;return {select:()=>({single:async()=>({data:{id:obj.id},error:null})})}}}}}");let reset=false;await w.run('postTaskUpdate')({preventDefault(){},target:{values:{body:'Ready for pickup',photo:null},querySelector:()=>({disabled:false}),reset(){reset=true}}},w.run('thread'));assert.equal(w.run('postedTable'),'dockflow_task_updates');assert.equal(w.run('postedUpdate.task_id'),'t');assert.equal(w.run('postedUpdate.body'),'Ready for pickup');assert.equal(w.run('postedUpdate.photo_path'),null);assert.equal(w.run("'author_id' in postedUpdate||'author_name' in postedUpdate||'created_at' in postedUpdate"),false);assert.equal(reset,true);
+});
+test('private photo upload is attached to its comment, and failed inserts clean up the upload',async()=>{
+ const w=workspace();w.run("cloud=true;user={id:'employee-a'};thread={id:'t',epoch,updates:[],posting:false};taskUpdateThread=thread;client={storage:{from:()=>({upload:async(path,file)=>{uploadedPath=path;return {error:null}},remove:async(paths)=>{removedPaths=paths;return {error:null}}})},from:()=>({insert:()=>({select:()=>({single:async()=>({error:{message:'Database rejected update'}})})})})}");await w.run('postTaskUpdate')({preventDefault(){},target:{values:{body:'Photo update',photo:{size:100,type:'image/png',name:'photo.png'}},querySelector:()=>({disabled:false}),reset(){}}},w.run('thread'));assert.match(w.run('uploadedPath'),/^employee-a\/updates\//);assert.equal(w.run('removedPaths[0]'),w.run('uploadedPath'));assert.match(w.elements.get('#taskUpdatePostError').textContent,/Database rejected/);
+});
+test('closing or replacing a dialog invalidates any in-flight update read',async()=>{
+ const w=workspace();w.run("cloud=true;thread={id:'t',epoch,updates:[],reading:false};taskUpdateThread=thread;client={from:()=>({select(){return this},eq(){return this},order(){return this},limit:()=>new Promise(resolve=>{resolveUpdates=resolve})})}");const pending=w.run('refreshTaskUpdates(thread)');w.run("openModal('Other','Other content');resolveUpdates({data:[{id:'late',body:'Private late comment'}],error:null})");await pending;assert.equal(w.run('taskUpdateThread'),null);assert.doesNotMatch(w.elements.get('#modalHost').innerHTML,/Private late/);
 });
