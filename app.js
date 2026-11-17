@@ -48,7 +48,7 @@ function taskTiming(t,showEstimate=true){
  if(!t.started_at)return `${showEstimate?taskEstimateHtml(t):''}${originalDueHtml(t)}<div class="muted" style="margin-top:10px">${tr('Time not recorded')}</div>`;
  return `${showEstimate?taskEstimateHtml(t):''}${originalDueHtml(t)}<div class="muted" style="margin-top:10px;line-height:1.7"><div>${tr('Started')}: ${esc(taskTimestamp(t.started_at))}</div><div>${tr('Finished')}: ${esc(taskTimestamp(t.finished_at))}</div>${t.paused_at?`<div>${tr('Paused since')}: ${esc(taskTimestamp(t.paused_at))}</div>`:''}<div><strong>${tr(t.finished_at?'Total time':'Time elapsed')}: <span ${!t.finished_at&&!t.paused_at?`data-elapsed-start="${esc(t.started_at)}" data-pause-seconds="${Number(t.total_pause_seconds||0)}"`:''}>${durationText(taskElapsed(t))}</span></strong></div></div>`;
 }
-function taskButtons(t){return `<div class="task-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${t.status!=='Done'&&!t.finished_at?(t.started_at?`${t.paused_at?`<button class="btn secondary" data-resume="${esc(t.id)}">${tr('Resume task')}</button>`:`<button class="btn secondary" data-pause="${esc(t.id)}">${tr('Pause task')}</button>`}<button class="btn" data-finish="${esc(t.id)}">${tr('Finish task')}</button>`:`<button class="btn" data-start="${esc(t.id)}">${tr('Start task')}</button>`):''}<button class="btn secondary" data-edit="${esc(t.id)}">${tr('Edit')}</button></div>`;}
+function taskButtons(t){return `<div class="task-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${t.status!=='Done'&&!t.finished_at?(t.started_at?`${t.paused_at?`<button class="btn secondary" data-resume="${esc(t.id)}">${tr('Resume task')}</button>`:`<button class="btn secondary" data-pause="${esc(t.id)}">${tr('Pause task')}</button>`}<button class="btn" data-finish="${esc(t.id)}">${tr('Finish task')}</button>`:(assignedIds(t).length?`<button class="btn" data-start="${esc(t.id)}">${tr('Start task')}</button>`:`<button class="btn" data-assign="${esc(t.id)}">${tr('Assign to')}</button>`)):''}<button class="btn secondary" data-edit="${esc(t.id)}">${tr('Edit')}</button></div>`;}
 async function changeTaskTiming(id,action,button){
  if(!cloud)return;const run=epoch;button.disabled=true;
  try{const r=await client.rpc('dockflow_task_action',{task_id:id,action});if(r.error)throw r.error;await loadCloud(run);render();}
@@ -218,6 +218,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b||!cloud)return;
  if(b.dataset.view){navigateTo(b.dataset.view);}
  else if(b.dataset.goto){navigateTo(b.dataset.goto);}
+ else if(b.dataset.assign){taskModal(b.dataset.assign);const worker=$('#taskForm').querySelector('[name=assignees]');worker?.scrollIntoView?.({block:'center'});worker?.focus?.();}
  else if(b.dataset.start)await changeTaskTiming(b.dataset.start,'start',b);
  else if(b.dataset.pause)await changeTaskTiming(b.dataset.pause,'pause',b);
  else if(b.dataset.resume)await changeTaskTiming(b.dataset.resume,'resume',b);

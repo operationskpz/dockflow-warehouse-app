@@ -79,12 +79,12 @@ test('language choice is stored and restored on reload',()=>{
  const next=vm.createContext({localStorage,document});vm.runInContext(code,next);assert.equal(vm.runInContext("tr('Settings')",next),'Configuración');
 });
 test('task cards offer one-click start, then finish, then fixed elapsed timing',()=>{
- const w=workspace();assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/data-start="t"/);assert.doesNotMatch(w.run("taskButtons({id:'t',status:'To Do'})"),/data-finish/);
+ const w=workspace();assert.match(w.run("taskButtons({id:'t',status:'To Do',assignees:['worker']})"),/data-start="t"/);assert.doesNotMatch(w.run("taskButtons({id:'t',status:'To Do',assignees:['worker']})"),/data-finish/);
  assert.match(w.run("taskButtons({id:'t',status:'In Progress',started_at:'2026-11-11T10:00:00Z'})"),/data-finish="t"/);
  const finished=w.run("taskTiming({started_at:'2026-11-11T10:00:00Z',finished_at:'2026-11-11T11:02:03Z'})");assert.match(finished,/1 h 2 min 3 s/);assert.match(finished,/Started/);assert.match(finished,/Finished/);assert.doesNotMatch(finished,/data-elapsed-start/);assert.doesNotMatch(w.run("taskButtons({id:'t',status:'Done',finished_at:'2026-11-11T11:00:00Z'})"),/data-start|data-finish/);
 });
 test('missing historical times are explicit and timing controls translate to Spanish',()=>{
- const w=workspace();assert.match(w.run("taskTiming({status:'In Progress'})"),/Time not recorded/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/Iniciar tarea/);assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/Finalizar tarea/);
+ const w=workspace();assert.match(w.run("taskTiming({status:'In Progress'})"),/Time not recorded/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do',assignees:['worker']})"),/Iniciar tarea/);assert.match(w.run("taskButtons({id:'t',started_at:'2026-11-11T10:00:00Z'})"),/Finalizar tarea/);
 });
 test('paused timers freeze and exclude all completed pauses',()=>{
  const w=workspace();assert.equal(w.run("taskElapsed({started_at:'2026-11-11T10:00:00Z',paused_at:'2026-11-11T10:10:00Z',total_pause_seconds:120},Date.parse('2026-11-11T11:00:00Z'))"),480000);
@@ -223,4 +223,8 @@ test('returning to a login or password reset form preserves input without anothe
 });
 test('bundled Supabase SDK routes its data requests through the configured fetch adapter',async()=>{
  let calls=0;const c=vm.createContext({URL,Headers,Request,Response,AbortController,TextEncoder,TextDecoder,WebSocket,console,setTimeout,clearTimeout,setInterval,clearInterval,crypto:require('node:crypto').webcrypto});vm.runInContext(fs.readFileSync(path.join(__dirname,'../vendor/supabase-2.119.0.js'),'utf8'),c);const client=c.supabase.createClient('https://example.supabase.co','public-test-key',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async()=>{calls++;return new Response('[]',{status:200,headers:{'Content-Type':'application/json'}})}}});const result=await client.from('probe').select('*');assert.equal(result.error,null);assert.equal(calls,1);
+});
+
+test('unassigned tasks offer assignment instead of start, including Spanish',()=>{
+ const w=workspace();const html=w.run("taskButtons({id:'t',status:'To Do',assignees:[]})");assert.match(html,/data-assign="t"/);assert.doesNotMatch(html,/data-start=/);assert.match(w.run("taskButtons({id:'t',status:'To Do',assignee:'legacy'})"),/data-start="t"/);w.run("setLanguage('es')");assert.match(w.run("taskButtons({id:'t',status:'To Do'})"),/Asignar a/);
 });

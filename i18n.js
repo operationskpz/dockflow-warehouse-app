@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Assign to':'Asignar a',
 'Total estimated hours':'Total de horas estimadas',
 'Connection timed out. Please try again.':'La conexión ha tardado demasiado. Inténtalo de nuevo.','Retry connection':'Reintentar conexión','Could not refresh the warehouse. Your current page is still open. Retry when connected.':'No se pudo actualizar el almacén. Tu página sigue abierta. Reintenta cuando tengas conexión.',
 'Carried over':'Trasladada de otro día','Original due date':'Fecha límite original',
