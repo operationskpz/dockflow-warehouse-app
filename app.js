@@ -274,22 +274,22 @@ if(typeof window.addEventListener==='function')window.addEventListener('popstate
 if(typeof window.addEventListener==='function')window.addEventListener('pageshow',event=>{if(event.persisted)handlePageVisible();});
 
 let dragTaskState=null,taskMoveSaving=false,touchTaskDrag=null;
-function movedWorkerIds(task,source,target){
+function movedWorkerIds(task,source,target,mode='move'){
  const current=assignedIds(task),known=new Set(db.employees.map(e=>e.id));
  if(target&&!known.has(target))throw Error(tr('Worker is no longer available.'));
  if(source&&!current.includes(source))throw Error(tr('Task assignment changed. Please refresh and try again.'));
  if(source===target)return current;
- const next=source?current.filter(id=>id!==source):current.filter(id=>known.has(id));
+ const next=source?(mode==='add'?current:current.filter(id=>id!==source)):current.filter(id=>known.has(id));
  return [...new Set(target?[...next,target]:next)];
 }
 function finishTaskDrag(){document.querySelectorAll('.drop-target,.task-is-dragging').forEach(el=>el.classList.remove('drop-target','task-is-dragging'));document.body.classList.remove('task-dragging');dragTaskState=null;}
 function markTaskDrop(target){document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));if(target&&dragTaskState&&target.dataset.workerId!==dragTaskState.source){target.dataset.dropMessage=target.dataset.workerId?tr('Assign to')+' '+who(target.dataset.workerId):tr('Unassigned');target.classList.add('drop-target');}}
-async function dropWorkerTask(payload,target){
+async function dropWorkerTask(payload,target,mode='move'){
  if(!cloud||taskMoveSaving||payload.source===target)return;
  const task=db.tasks.find(t=>t.id===payload.id);if(!task)return;
  const run=epoch;taskMoveSaving=true;
  try{
-  const assignees=movedWorkerIds(task,payload.source,target);
+  const assignees=movedWorkerIds(task,payload.source,target,mode);
   const result=await client.from('dockflow_tasks').update({assignee:assignees[0]||'',assignees}).eq('id',task.id).select('id').single();if(result.error)throw result.error;
   if(run!==epoch)return;await loadCloud(run);if(run===epoch){closeModal();render();}
  }catch(error){if(run===epoch)alert(tr('Could not move task: ')+tr(error.message));}finally{taskMoveSaving=false;}
@@ -297,9 +297,10 @@ async function dropWorkerTask(payload,target){
 function confirmTaskDrop(payload,target){
  if(!cloud||taskMoveSaving||payload.source===target)return;
  const task=db.tasks.find(t=>t.id===payload.id);if(!task)return;const run=epoch;
- const destination=target?who(target):tr('Unassigned');
- openModal('Confirm assignment',`<div class="assignment-confirm"><span class="assignment-confirm-icon">${uiIcon('people')}</span><p>${tr('Assign this task to')} <strong>${esc(destination)}</strong>?</p><div class="assignment-confirm-task">${esc(task.title)}</div><p class="muted">${tr('Other assigned workers will stay on this task.')}</p></div><div class="actions"><button type="button" class="btn secondary" id="cancelModal">${tr('Cancel')}</button><button type="button" class="btn" id="confirmTaskMove">${tr('Confirm assignment')}</button></div>`);
- $('#confirmTaskMove').onclick=async event=>{if(run!==epoch||!cloud)return;const button=event.currentTarget;button.disabled=true;await dropWorkerTask(payload,target);if(run===epoch)button.disabled=false;};
+ const destination=target?who(target):tr('Unassigned'),source=payload.source?who(payload.source):'',chooseMode=!!(payload.source&&target);
+ openModal('Confirm assignment',`<div class="assignment-confirm"><span class="assignment-confirm-icon">${uiIcon('people')}</span><p>${tr('Assign this task to')} <strong>${esc(destination)}</strong>?</p><div class="assignment-confirm-task">${esc(task.title)}</div>${chooseMode?`<div class="assignment-options"><button type="button" class="assignment-option" id="confirmTaskAdd">${uiIcon('people')}<span><strong>${tr('Add this worker')}</strong><small>${tr('Keep assigned to')} ${esc(source)} ${tr('and add')} ${esc(destination)}.</small></span></button><button type="button" class="assignment-option" id="confirmTaskMove">${uiIcon('play')}<span><strong>${tr('Move to this worker')}</strong><small>${tr('Remove from')} ${esc(source)} ${tr('and assign to')} ${esc(destination)}.</small></span></button></div>`:''}<p class="muted">${tr('Other assigned workers will stay on this task.')}</p></div><div class="actions"><button type="button" class="btn secondary" id="cancelModal">${tr('Cancel')}</button>${chooseMode?'':`<button type="button" class="btn" id="confirmTaskMove">${tr('Confirm assignment')}</button>`}</div>`);
+ const save=mode=>async event=>{if(run!==epoch||!cloud||taskMoveSaving)return;const button=event.currentTarget,other=chooseMode?$(mode==='add'?'#confirmTaskMove':'#confirmTaskAdd'):null;button.disabled=true;if(other)other.disabled=true;await dropWorkerTask(payload,target,mode);if(run===epoch){button.disabled=false;if(other)other.disabled=false;}};
+ $('#confirmTaskMove').onclick=save('move');if(chooseMode)$('#confirmTaskAdd').onclick=save('add');
 }
 document.addEventListener('dragstart',event=>{
  const task=event.target.closest('[data-drag-task]'),card=task?.closest('[data-worker-id]');if(!cloud||taskMoveSaving||!task||!card||event.target.closest('a,input,select,textarea,summary,button:not(.task-drag-handle)')){event.preventDefault();return;}

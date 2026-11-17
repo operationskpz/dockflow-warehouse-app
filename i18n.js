@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Add this worker':'Añadir este trabajador','Move to this worker':'Mover a este trabajador','Keep assigned to':'Mantener asignado a','and add':'y añadir a','Remove from':'Quitar de','and assign to':'y asignar a',
 'Confirm assignment':'Confirmar asignación','Assign this task to':'Asignar esta tarea a','Other assigned workers will stay on this task.':'Los demás trabajadores asignados permanecerán en esta tarea.',
 'Move task':'Mover tarea','Drag to another worker, or click to choose workers.':'Arrastra a otro trabajador o pulsa para elegir trabajadores.','Drag tasks between worker boxes to reassign them.':'Arrastra tareas entre los recuadros para reasignarlas.','Worker is no longer available.':'El trabajador ya no está disponible.','Task assignment changed. Please refresh and try again.':'La asignación cambió. Actualiza e inténtalo de nuevo.','Could not move task: ':'No se pudo mover la tarea: ',
 'Previous month':'Mes anterior','Next month':'Mes siguiente','Choose a date':'Elige una fecha','Clear':'Borrar','Close':'Cerrar',
