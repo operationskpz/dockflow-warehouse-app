@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Total estimated hours':'Total de horas estimadas',
 'Connection timed out. Please try again.':'La conexión ha tardado demasiado. Inténtalo de nuevo.','Retry connection':'Reintentar conexión','Could not refresh the warehouse. Your current page is still open. Retry when connected.':'No se pudo actualizar el almacén. Tu página sigue abierta. Reintenta cuando tengas conexión.',
 'Carried over':'Trasladada de otro día','Original due date':'Fecha límite original',
 'Estimated time (hours)':'Tiempo estimado (horas)','e.g. 1.5':'Ej.: 1.5','Enter estimated hours between 0.01 and 8760.':'Introduce un tiempo estimado entre 0.01 y 8760 horas.','Optional. Example: 0.5 = 30 minutes. Rounded to the nearest minute.':'Opcional. Ejemplo: 0.5 = 30 minutos. Se redondea al minuto más cercano.','The countdown stops while the task is paused.':'La cuenta regresiva se detiene mientras la tarea está en pausa.',
