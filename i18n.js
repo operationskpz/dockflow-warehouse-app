@@ -1,5 +1,6 @@
 'use strict';
 const spanish={
+'Task details':'Detalles de la tarea',
 'Save assignment':'Guardar asignación','Select at least one worker.':'Selecciona al menos un trabajador.',
 'Assign to':'Asignar a',
 'Total estimated hours':'Total de horas estimadas',
