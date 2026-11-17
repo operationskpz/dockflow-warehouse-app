@@ -71,3 +71,5 @@ input[type=date]{color:#31547f;background:#f5f8ff;font-variant-numeric:tabular-n
 
 /* One full-width worker box per row on phones. */
 @media(max-width:700px){.worker-board,.all-task-board{grid-template-columns:minmax(0,1fr);gap:14px}.worker-card{padding:13px}.worker-identity h2,.worker-identity h3{font-size:14px!important}.worker-task h3,.all-task-board .worker-task h3{font-size:14px}.worker-task .btn{font-size:12px}.worker-task .muted{font-size:12px}.worker-hours>span{font-size:11px}}
+
+.top>div:first-child{flex:1}.top #bulkTaskActions:empty{display:none}.btn.pause-all-button{background:#fff4df;border-color:#ebcd92;color:#865c1d}.btn.pause-all-button:hover:not(:disabled){background:#ffe9bf;border-color:#dbb86d;color:#714a13}@media(max-width:700px){.top{gap:10px}.top #bulkTaskActions .btn{font-size:11px;padding:9px 10px;min-height:39px}.top #bulkTaskActions .ui-icon{width:14px;height:14px}}
