@@ -293,3 +293,15 @@ test('admin confirms bulk pause before a single server call',async()=>{
 test('employees cannot open bulk pause confirmation',()=>{
  const w=workspace();w.run("cloud=true;memberRole='employee';db.tasks=[{id:'t',started_at:'2026-11-17T10:00:00Z'}];confirmPauseAllTasks()");assert.equal(w.elements.get('#modalHost')?.innerHTML||'','');
 });
+test('quantity details accept whole counts and provide pallets, boxes and units',()=>{
+ const w=workspace();assert.equal(w.run("readTaskQuantity('5')"),5);assert.equal(w.run("readTaskQuantity('')"),null);for(const value of ['0','-1','1.5','NaN','1000001'])assert.throws(()=>w.run(`readTaskQuantity('${value}')`));const html=w.run("taskQuantityFields({target_quantity:5,quantity_unit:'boxes'})");assert.match(html,/name="target_quantity"/);assert.match(html,/value="boxes" selected/);assert.match(html,/Pallets/);assert.match(html,/Boxes/);assert.match(html,/Units/);
+});
+test('quantity progress permits one item only on running unfinished tasks',()=>{
+ const w=workspace();w.run("q={id:'t',target_quantity:5,completed_quantity:1,quantity_unit:'pallets',started_at:'2026-11-18T12:00:00Z',status:'In Progress'}");let html=w.run('taskQuantityHtml(q)');assert.match(html,/1\/5 pallets completed/);assert.match(html,/data-complete-quantity="t"/);assert.match(html,/\+1 pallet/);w.run("q.paused_at='2026-11-18T13:00:00Z'");assert.doesNotMatch(w.run('taskQuantityHtml(q)'),/data-complete-quantity/);w.run('q.paused_at=null;q.completed_quantity=5');assert.doesNotMatch(w.run('taskQuantityHtml(q)'),/data-complete-quantity/);assert.equal(w.run("taskQuantityHtml({id:'old'})"),'');
+});
+test('recording quantity uses an atomic increment without marking task finished',async()=>{
+ const w=workspace();w.run("cloud=true;loadCloud=async()=>{};client={rpc:async(name,args)=>{quantityRpc=name;quantityArgs=args;return {data:{completed_quantity:1},error:null}}}");await w.run('completeTaskQuantity')('t',{disabled:false});assert.equal(w.run('quantityRpc'),'dockflow_complete_quantity');assert.equal(w.run('JSON.stringify(quantityArgs)'),'{"task_id":"t","amount":1}');
+});
+test('task form saves quantity details without overwriting shared completion count',async()=>{
+ const w=workspace();w.run("cloud=true;loadCloud=async()=>{};client={from:()=>({upsert:obj=>{savedQuantityTask=obj;return {select:()=>({single:async()=>({data:{id:obj.id},error:null})})}}})};taskModal()");await w.elements.get('#taskForm').onsubmit({preventDefault(){},target:{values:{title:'Pick pallets',description:'',category:'Shipping',priority:'Medium',status:'To Do',due:'2026-11-18',assignees:['a'],estimated_hours:'1',target_quantity:'5',quantity_unit:'pallets'},querySelector(){return {disabled:false}}}});assert.equal(w.run('savedQuantityTask.target_quantity'),5);assert.equal(w.run('savedQuantityTask.quantity_unit'),'pallets');assert.equal(w.run("'completed_quantity' in savedQuantityTask"),false);
+});
